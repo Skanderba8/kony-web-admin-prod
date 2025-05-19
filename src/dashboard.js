@@ -427,87 +427,153 @@ export function initializeBIDashboard(container = document.getElementById('conte
   loadDashboardData();
   
   /**
-   * Load dashboard data from Firebase
-   * @param {boolean} forceRefresh - Whether to force a refresh
-   * @param {Object} filters - Optional filters to apply
-   */
-  async function loadDashboardData(forceRefresh = false, filters = {}) {
+ * Load dashboard data from Firebase
+ * @param {boolean} forceRefresh - Whether to force a refresh
+ * @param {Object} filters - Optional filters to apply
+ */
+async function loadDashboardData(forceRefresh = false, filters = {}) {
+  try {
+    // Show loading state
+    showLoading();
+    
+    console.log('--- BI DASHBOARD: Starting data load ---');
+    
+    // Fetch reports from Firestore
+    const reportsRef = collection(db, 'technical_visit_reports');
+    let reportsQuery = query(reportsRef, orderBy('createdAt', 'desc'));
+    
+    console.log('BI DASHBOARD: Created reports query');
+    
+    // Apply filters if provided
+    if (filters.status) {
+      console.log(`BI DASHBOARD: Applying status filter: ${filters.status}`);
+      reportsQuery = query(reportsQuery, where('status', '==', filters.status));
+    }
+    
+    if (filters.startDate && filters.endDate) {
+      console.log(`BI DASHBOARD: Applying date filters from ${filters.startDate} to ${filters.endDate}`);
+      const startTimestamp = Timestamp.fromDate(filters.startDate);
+      const endTimestamp = Timestamp.fromDate(filters.endDate);
+      reportsQuery = query(
+        reportsQuery, 
+        where('createdAt', '>=', startTimestamp),
+        where('createdAt', '<=', endTimestamp)
+      );
+    }
+    
+    if (filters.technician) {
+      console.log(`BI DASHBOARD: Applying technician filter: ${filters.technician}`);
+      reportsQuery = query(reportsQuery, where('technicianName', '==', filters.technician));
+    }
+    
+    if (filters.client) {
+      console.log(`BI DASHBOARD: Applying client filter: ${filters.client}`);
+      reportsQuery = query(reportsQuery, where('clientName', '==', filters.client));
+    }
+    
+    // Fetch users from Firestore
+    const usersRef = collection(db, 'users');
+    console.log('BI DASHBOARD: Created users query');
+    
+    console.log('BI DASHBOARD: Executing queries...');
+    
+    // Execute both queries
     try {
-      // Show loading state
-      showLoading();
-      
-      // Fetch reports from Firestore
-      const reportsRef = collection(db, 'technical_visit_reports');
-      let reportsQuery = query(reportsRef, orderBy('createdAt', 'desc'));
-      
-      // Apply filters if provided
-      if (filters.status) {
-        reportsQuery = query(reportsQuery, where('status', '==', filters.status));
-      }
-      
-      if (filters.startDate && filters.endDate) {
-        const startTimestamp = Timestamp.fromDate(filters.startDate);
-        const endTimestamp = Timestamp.fromDate(filters.endDate);
-        reportsQuery = query(
-          reportsQuery, 
-          where('createdAt', '>=', startTimestamp),
-          where('createdAt', '<=', endTimestamp)
-        );
-      }
-      
-      if (filters.technician) {
-        reportsQuery = query(reportsQuery, where('technicianName', '==', filters.technician));
-      }
-      
-      if (filters.client) {
-        reportsQuery = query(reportsQuery, where('clientName', '==', filters.client));
-      }
-      
-      // Fetch users from Firestore
-      const usersRef = collection(db, 'users');
-      
-      // Execute both queries
       const [reportsSnapshot, usersSnapshot] = await Promise.all([
         getDocs(reportsQuery),
         getDocs(usersRef)
       ]);
       
+      console.log(`BI DASHBOARD: Got ${reportsSnapshot.docs.length} reports and ${usersSnapshot.docs.length} users`);
+      
       // Process reports data
+      console.log('BI DASHBOARD: Processing reports data...');
       const reports = reportsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // Convert timestamps to dates
-          createdAt: data.createdAt?.toDate() || new Date(),
-          submittedAt: data.submittedAt?.toDate() || null,
-          lastModified: data.lastModified?.toDate() || null
-        };
-      });
+        try {
+          const data = doc.data();
+          
+          // Log the first report to check structure
+          if (doc === reportsSnapshot.docs[0]) {
+            console.log('BI DASHBOARD: Sample report data structure:', {
+              id: doc.id,
+              hasCreatedAt: !!data.createdAt,
+              hasSubmittedAt: !!data.submittedAt,
+              hasLastModified: !!data.lastModified,
+              status: data.status,
+              hasFloors: !!data.floors,
+              floorsIsArray: Array.isArray(data.floors),
+              floorsLength: Array.isArray(data.floors) ? data.floors.length : 'N/A'
+            });
+          }
+          
+          return {
+            id: doc.id,
+            ...data,
+            // Convert timestamps to dates
+            createdAt: data.createdAt?.toDate() || new Date(),
+            submittedAt: data.submittedAt?.toDate() || null,
+            lastModified: data.lastModified?.toDate() || null
+          };
+        } catch (err) {
+          console.error(`BI DASHBOARD: Error processing report ${doc.id}:`, err);
+          return null;
+        }
+      }).filter(Boolean); // Remove any null values
+      
+      console.log(`BI DASHBOARD: Processed ${reports.length} valid reports`);
       
       // Process users data
+      console.log('BI DASHBOARD: Processing users data...');
       const users = usersSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      console.log(`BI DASHBOARD: Processed ${users.length} users`);
       
       // Update state
       dashboardData.reports = reports;
       dashboardData.users = users;
       
       // Calculate analytics
-      dashboardData.analytics = processAnalyticsData(reports, users);
+      console.log('BI DASHBOARD: Calculating analytics...');
+      try {
+        dashboardData.analytics = processAnalyticsData(reports, users);
+        console.log('BI DASHBOARD: Analytics calculated successfully');
+        
+        // Log analytics structure to verify it's complete
+        console.log('BI DASHBOARD: Analytics structure:', {
+          hasKpis: !!dashboardData.analytics.kpis,
+          hasReportsByStatus: !!dashboardData.analytics.reportsByStatus,
+          hasComponentStats: !!dashboardData.analytics.componentStats,
+          hasTechnicianPerformance: !!dashboardData.analytics.technicianPerformance,
+          hasTimeSeries: !!dashboardData.analytics.timeSeries
+        });
+      } catch (analyticsError) {
+        console.error('BI DASHBOARD: Error calculating analytics:', analyticsError);
+        throw analyticsError;
+      }
       
       // Extract available technicians and clients for filters
       const technicians = [...new Set(reports.map(report => report.technicianName).filter(Boolean))];
       const clients = [...new Set(reports.map(report => report.clientName).filter(Boolean))];
       
+      console.log(`BI DASHBOARD: Found ${technicians.length} technicians and ${clients.length} clients`);
+      
       // Update filter options
+      console.log('BI DASHBOARD: Updating filter options...');
       filterPanel.updateTechnicians(technicians);
       filterPanel.updateClients(clients);
       
       // Update dashboard components
-      updateDashboard();
+      console.log('BI DASHBOARD: Updating dashboard components...');
+      try {
+        updateDashboard();
+        console.log('BI DASHBOARD: Dashboard updated successfully');
+      } catch (updateError) {
+        console.error('BI DASHBOARD: Error updating dashboard:', updateError);
+        throw updateError;
+      }
       
       // Hide loading state
       hideLoading();
@@ -517,41 +583,60 @@ export function initializeBIDashboard(container = document.getElementById('conte
         showNotification('Data Refreshed', 'Dashboard data has been updated successfully', 'success');
       }
       
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      hideLoading();
-      showError(error.message);
+      console.log('--- BI DASHBOARD: Data load complete ---');
+      
+    } catch (queryError) {
+      console.error('BI DASHBOARD: Error executing queries:', queryError);
+      throw queryError;
     }
+  } catch (error) {
+    console.error('BI DASHBOARD: Error loading dashboard data:', error);
+    hideLoading();
+    showError(error.message);
   }
+}
   
   /**
-   * Process analytics data from reports and users
-   * @param {Array} reports - The reports data
-   * @param {Array} users - The users data
-   * @returns {Object} - Processed analytics data
-   */
-  function processAnalyticsData(reports, users) {
-    // Calculate reports by status
-    const reportsByStatus = {
-      draft: 0,
-      submitted: 0,
-      reviewed: 0,
-      approved: 0
-    };
-    
-    reports.forEach(report => {
-      if (report.status && reportsByStatus.hasOwnProperty(report.status)) {
-        reportsByStatus[report.status]++;
-      }
-    });
-    
-    // Process component statistics
+ * Process analytics data from reports and users
+ * @param {Array} reports - The reports data
+ * @param {Array} users - The users data
+ * @returns {Object} - Processed analytics data
+ */
+function processAnalyticsData(reports, users) {
+  console.log('BI DASHBOARD: processAnalyticsData started');
+  
+  // Calculate reports by status
+  const reportsByStatus = {
+    draft: 0,
+    submitted: 0,
+    reviewed: 0,
+    approved: 0
+  };
+  
+  reports.forEach(report => {
+    if (report.status && reportsByStatus.hasOwnProperty(report.status)) {
+      reportsByStatus[report.status]++;
+    }
+  });
+  
+  console.log('BI DASHBOARD: Reports by status:', reportsByStatus);
+  
+  // Process component statistics
+  console.log('BI DASHBOARD: Processing component data...');
+  try {
     const componentStats = processComponentData(reports);
-    
+    console.log('BI DASHBOARD: Component stats processed:', {
+      totalComponents: componentStats.total,
+      avgComponentsPerReport: componentStats.byReport
+    });
+  
     // Process technician performance
+    console.log('BI DASHBOARD: Processing technician data...');
     const technicianPerformance = processTechnicianData(reports);
+    console.log(`BI DASHBOARD: Processed ${Object.keys(technicianPerformance).length} technicians`);
     
     // Calculate KPIs
+    console.log('BI DASHBOARD: Calculating KPIs...');
     const kpis = {
       totalReports: reports.length,
       totalSubmitted: reportsByStatus.submitted,
@@ -567,24 +652,56 @@ export function initializeBIDashboard(container = document.getElementById('conte
       mostActiveTechnician: findMostActiveTechnician(reports)
     };
     
-    // Generate time series data
-    const timeSeries = generateTimeSeriesData(reports);
+    console.log('BI DASHBOARD: KPIs calculated:', kpis);
     
-    return {
+    // Generate time series data
+    console.log('BI DASHBOARD: Generating time series data...');
+    const timeSeries = generateTimeSeriesData(reports);
+    console.log('BI DASHBOARD: Time series data generated');
+    
+    const result = {
       kpis,
       reportsByStatus,
       componentStats,
       technicianPerformance,
       timeSeries
     };
+    
+    console.log('BI DASHBOARD: processAnalyticsData completed');
+    return result;
+  } catch (error) {
+    console.error('BI DASHBOARD: Error in processAnalyticsData:', error);
+    // Return minimal valid analytics to prevent dashboard from breaking
+    return {
+      kpis: {
+        totalReports: reports.length,
+        totalSubmitted: 0,
+        totalReviewed: 0,
+        totalApproved: 0,
+        avgCompletionTime: 0,
+        totalComponents: 0,
+        avgComponentsPerReport: 0,
+        totalTechnicians: users.filter(u => u.role === 'technician').length,
+        mostActiveClient: '',
+        mostActiveTechnician: ''
+      },
+      reportsByStatus: { draft: 0, submitted: 0, reviewed: 0, approved: 0 },
+      componentStats: { types: {}, total: 0, byReport: 0 },
+      technicianPerformance: {},
+      timeSeries: { monthly: { labels: [], created: [], submitted: [] }, weekly: { labels: [], created: [], submitted: [] } }
+    };
   }
+}
   
   /**
-   * Process component data from reports
-   * @param {Array} reports - Reports data
-   * @returns {Object} - Component statistics
-   */
-  function processComponentData(reports) {
+ * Process component data from reports
+ * @param {Array} reports - Reports data
+ * @returns {Object} - Component statistics
+ */
+function processComponentData(reports) {
+  console.log('BI DASHBOARD: processComponentData started with', reports.length, 'reports');
+  
+  try {
     // Define component types
     const componentTypes = {
       networkCabinets: { count: 0, name: 'Network Cabinets' },
@@ -598,12 +715,42 @@ export function initializeBIDashboard(container = document.getElementById('conte
     };
     
     let total = 0;
+    let floorsProcessed = 0;
+    let reportsWithFloors = 0;
     
     // Count components by type
-    reports.forEach(report => {
-      if (!report.floors) return;
+    reports.forEach((report, index) => {
+      if (!report.floors) {
+        console.log(`BI DASHBOARD: Report ${index} (${report.id}) has no floors property`);
+        return;
+      }
+      
+      if (!Array.isArray(report.floors)) {
+        console.log(`BI DASHBOARD: Report ${index} (${report.id}) floors is not an array: ${typeof report.floors}`);
+        return;
+      }
+      
+      reportsWithFloors++;
+      floorsProcessed += report.floors.length;
+      
+      // Log first report's floor structure
+      if (index === 0 && report.floors.length > 0) {
+        const sampleFloor = report.floors[0];
+        console.log('BI DASHBOARD: Sample floor structure:', {
+          name: sampleFloor.name,
+          hasNetworkCabinets: !!sampleFloor.networkCabinets,
+          networkCabinetsIsArray: Array.isArray(sampleFloor.networkCabinets),
+          networkCabinetsLength: Array.isArray(sampleFloor.networkCabinets) ? sampleFloor.networkCabinets.length : 'N/A',
+          // Add other component types if needed
+        });
+      }
       
       report.floors.forEach(floor => {
+        if (!floor) {
+          console.log(`BI DASHBOARD: Null floor in report ${report.id}`);
+          return;
+        }
+        
         Object.keys(componentTypes).forEach(type => {
           if (floor[type] && Array.isArray(floor[type])) {
             componentTypes[type].count += floor[type].length;
@@ -613,13 +760,23 @@ export function initializeBIDashboard(container = document.getElementById('conte
       });
     });
     
+    console.log(`BI DASHBOARD: Component processing stats: ${reportsWithFloors} reports with floors, ${floorsProcessed} floors processed, ${total} total components`);
+    
     return {
       types: componentTypes,
       total,
       byReport: reports.length > 0 ? parseFloat((total / reports.length).toFixed(2)) : 0
     };
+  } catch (error) {
+    console.error('BI DASHBOARD: Error in processComponentData:', error);
+    // Return empty result to prevent dashboard from breaking
+    return {
+      types: {},
+      total: 0,
+      byReport: 0
+    };
   }
-  
+}  
   /**
    * Process technician performance data
    * @param {Array} reports - Reports data
@@ -920,28 +1077,52 @@ export function initializeBIDashboard(container = document.getElementById('conte
   /**
    * Update dashboard with current data
    */
-  function updateDashboard() {
-    const { reports, analytics } = dashboardData;
-    
-    if (!analytics) return;
-    
+function updateDashboard() {
+  console.log('BI DASHBOARD: updateDashboard started');
+  
+  const { reports, analytics } = dashboardData;
+  
+  if (!analytics) {
+    console.error('BI DASHBOARD: analytics is null or undefined');
+    showError('Analytics data is missing');
+    return;
+  }
+  
+  try {
     // Render KPI cards
+    console.log('BI DASHBOARD: Rendering KPI cards');
     renderKPISummaryCards('kpiCardsContainer', analytics.kpis);
     
     // Render charts
+    console.log('BI DASHBOARD: Rendering status chart');
     renderStatusChart();
+    
+    console.log('BI DASHBOARD: Rendering trends chart');
     renderTrendsChart();
+    
+    console.log('BI DASHBOARD: Rendering component chart');
     renderComponentChart();
+    
+    console.log('BI DASHBOARD: Rendering technician chart');
     renderTechnicianChart();
     
     // Render component statistics
+    console.log('BI DASHBOARD: Rendering component stats');
     renderComponentStats();
     
     // Render tables
+    console.log('BI DASHBOARD: Rendering technician table');
     renderTechnicianTable();
+    
+    console.log('BI DASHBOARD: Rendering reports table');
     renderReportsTable();
+    
+    console.log('BI DASHBOARD: updateDashboard completed');
+  } catch (error) {
+    console.error('BI DASHBOARD: Error in updateDashboard:', error);
+    showError(`Dashboard update failed: ${error.message}`);
   }
-  
+}
   /**
    * Render status distribution chart
    */
