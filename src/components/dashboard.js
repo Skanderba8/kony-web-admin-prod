@@ -1,85 +1,139 @@
+// src/components/dashboard.js
+import { createLayout } from './layout.js';
 import { showReportsList } from './reports.js';
 import { showUsersList } from './users.js';
-import { logOut } from '../utils/auth.js';
 import { initializeBIDashboard } from '../dashboard.js';
 
+// Module mapping
+const moduleHandlers = {
+  reports: showReportsList,
+  users: showUsersList,
+  biDashboard: initializeBIDashboard
+};
+
 /**
- * Shows the dashboard layout
+ * Shows the dashboard with the modern layout
+ * @param {string} initialModule - The module to show initially
  */
-export function showDashboard() {
-  console.log('Showing dashboard');
+export function showDashboard(initialModule = 'reports') {
+  console.log('Showing modern dashboard with initial module:', initialModule);
   const appContainer = document.getElementById('app');
   
-  // Create dashboard layout
-  appContainer.innerHTML = `
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">Kony Admin</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <a class="nav-link active" href="#" id="reportsLink">Reports</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="usersLink">Users</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="biDashboardLink">BI Dashboard</a>
-            </li>
-          </ul>
-          <button class="btn btn-outline-light" id="logoutButton">Logout</button>
-        </div>
-      </div>
-    </nav>
-    
-    <div class="container-fluid mt-4">
-      <div id="contentContainer">
-        <!-- Content will be loaded here -->
-      </div>
-    </div>
-  `;
+  // Create layout
+  const layout = createLayout(initialModule);
   
-  // Add event listeners
-  document.getElementById('reportsLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    setActiveNavLink('reportsLink');
-    showReportsList();
-  });
+  // Replace app container content
+  appContainer.innerHTML = '';
+  appContainer.appendChild(layout);
   
-  document.getElementById('usersLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    setActiveNavLink('usersLink');
-    showUsersList();
-  });
+  // Initialize Bootstrap components
+  initializeBootstrapComponents();
   
-  document.getElementById('biDashboardLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    setActiveNavLink('biDashboardLink');
-    initializeBIDashboard(document.getElementById('contentContainer'));
-  });
+  // Listen for module changes
+  document.addEventListener('moduleChange', handleModuleChange);
   
-  document.getElementById('logoutButton').addEventListener('click', async () => {
-    try {
-      await logOut();
-      // Auth state observer will handle redirection
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Error logging out: ' + error.message);
-    }
-  });
+  // Load initial module
+  loadModule(initialModule);
   
-  // Show reports section by default
-  showReportsList();
+  // Setup responsive behavior
+  setupResponsiveBehavior();
 }
 
 /**
- * Set active navigation link
+ * Initializes Bootstrap components like dropdowns, tooltips, etc.
  */
-function setActiveNavLink(activeId) {
-  const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-  navLinks.forEach(link => link.classList.remove('active'));
-  document.getElementById(activeId).classList.add('active');
+function initializeBootstrapComponents() {
+  // Initialize dropdowns
+  const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+  dropdownElementList.forEach(dropdownToggleEl => {
+    new bootstrap.Dropdown(dropdownToggleEl);
+  });
+  
+  // Initialize tooltips
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  tooltipTriggerList.forEach(tooltipTriggerEl => {
+    new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+}
+
+/**
+ * Handles module change events
+ * @param {CustomEvent} event - The module change event
+ */
+function handleModuleChange(event) {
+  const { module } = event.detail;
+  loadModule(module);
+  
+  // Update active class in sidebar
+  document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+    link.classList.remove('active');
+  });
+  document.getElementById(`${module}Link`).classList.add('active');
+  
+  // Close sidebar on mobile after module change
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar.classList.contains('show')) {
+    sidebar.classList.remove('show');
+  }
+}
+
+/**
+ * Loads a specific module content
+ * @param {string} module - The module to load
+ */
+function loadModule(module) {
+  const contentContainer = document.getElementById('contentContainer');
+  
+  // Show loading state
+  contentContainer.innerHTML = `
+    <div class="loading-container">
+      <div class="spinner-container">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+      <p>Loading ${module}...</p>
+    </div>
+  `;
+  
+  // Small delay to show loading animation
+  setTimeout(() => {
+    // Check if handler exists
+    if (moduleHandlers[module]) {
+      moduleHandlers[module](contentContainer);
+    } else {
+      contentContainer.innerHTML = `
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Module "${module}" not implemented yet.
+        </div>
+      `;
+    }
+  }, 300);
+}
+
+/**
+ * Sets up responsive behavior for the dashboard
+ */
+function setupResponsiveBehavior() {
+  // Watch for window resize events
+  window.addEventListener('resize', () => {
+    const sidebar = document.querySelector('.sidebar');
+    if (window.innerWidth >= 992) { // lg breakpoint
+      // Remove show class if window is resized to desktop
+      sidebar.classList.remove('show');
+    }
+  });
+  
+  // Close sidebar when clicking outside of it on mobile
+  document.addEventListener('click', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.querySelector('#sidebarToggle');
+    
+    if (window.innerWidth < 992 && sidebar.classList.contains('show') && 
+        !sidebar.contains(e.target) && 
+        e.target !== sidebarToggle) {
+      sidebar.classList.remove('show');
+    }
+  });
 }

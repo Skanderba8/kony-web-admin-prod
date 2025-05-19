@@ -7,6 +7,9 @@ import { showDashboard } from './components/dashboard.js';
 
 console.log('Initializing Kony Web Admin Dashboard');
 
+// Force light mode by default
+document.documentElement.removeAttribute('data-theme');
+
 // Main application initialization
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, setting up auth listener');

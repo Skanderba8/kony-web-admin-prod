@@ -3,22 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tableau de Bord Admin Kony</title>
-  <link rel="stylesheet" href="/src/style.css">
+  <title>Kony Admin - Network Solutions</title>
+  
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+  
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+  
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="/src/style.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/vite.svg">
+  
+  <!-- Additional meta tags for better SEO and responsiveness -->
+  <meta name="description" content="Kony Admin Dashboard - Professional Network Solutions Management">
+  <meta name="theme-color" content="#3b71ca">
 </head>
 <body>
   <div id="app">
-    <!-- Le contenu sera chargé dynamiquement via JavaScript -->
-    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Chargement...</span>
+    <!-- Content will be loaded dynamically via JavaScript -->
+    <div class="loading-container" style="height: 100vh;">
+      <div class="spinner-container">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
       </div>
+      <p>Chargement de l'application...</p>
     </div>
   </div>
   
-  <!-- Modal Visualisation PDF -->
+  <!-- PDF View Modal -->
   <div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl" style="max-width: 95%;">
       <div class="modal-content">
@@ -27,23 +43,23 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body p-0">
-          <!-- Visualiseur PDF avec style amélioré -->
+          <!-- PDF viewer with improved style -->
           <iframe id="pdfViewer" style="width: 100%; height: 80vh; border: none;"></iframe>
         </div>
         <div class="modal-footer">
           <div id="pdfErrorMessage" class="text-danger me-auto"></div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
           <button type="button" class="btn btn-primary" id="downloadPdfBtn">
-            <i class="bi bi-download"></i> Télécharger PDF
+            <i class="bi bi-download me-2"></i> Télécharger PDF
           </button>
         </div>
       </div>
     </div>
   </div>
   
-  <!-- Modal Utilisateur -->
+  <!-- User Modal -->
   <div class="modal fade" id="userModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="userModalTitle">Modifier Utilisateur</h5>
@@ -53,55 +69,156 @@
           <form id="userForm">
             <input type="hidden" id="userId">
             <input type="hidden" id="userAuthUid">
+            
             <div class="mb-3">
               <label for="userName" class="form-label">Nom</label>
-              <input type="text" class="form-control" id="userName" required>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" class="form-control" id="userName" required>
+              </div>
             </div>
+            
             <div class="mb-3">
               <label for="userEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="userEmail" required>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input type="email" class="form-control" id="userEmail" required>
+              </div>
             </div>
+            
             <div class="mb-3">
               <label for="userRole" class="form-label">Rôle</label>
-              <select class="form-select" id="userRole">
-                <option value="technician">Technicien</option>
-                <option value="admin">Administrateur</option>
-              </select>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-shield"></i></span>
+                <select class="form-select" id="userRole">
+                  <option value="technician">Technicien</option>
+                  <option value="admin">Administrateur</option>
+                </select>
+              </div>
             </div>
+            
             <div id="passwordGroup" class="mb-3">
               <label for="userPassword" class="form-label">Mot de passe</label>
-              <input type="password" class="form-control" id="userPassword" minlength="6">
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                <input type="password" class="form-control" id="userPassword" minlength="6">
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
               <div class="form-text">Minimum 6 caractères. Laissez vide pour conserver le mot de passe actuel.</div>
+              
+              <div class="password-strength mt-2" id="passwordStrength">
+                <div class="progress" style="height: 5px;">
+                  <div class="progress-bar" id="passwordStrengthBar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small class="form-text text-muted" id="passwordStrengthText">Force du mot de passe</small>
+              </div>
+            </div>
+            
+            <div class="form-check form-switch mt-3">
+              <input class="form-check-input" type="checkbox" id="userActive" checked>
+              <label class="form-check-label" for="userActive">Utilisateur actif</label>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="button" class="btn btn-primary" id="saveUserBtn">Enregistrer</button>
+          <button type="button" class="btn btn-primary" id="saveUserBtn">
+            <i class="bi bi-save me-2"></i> Enregistrer
+          </button>
         </div>
       </div>
     </div>
   </div>
   
-  <!-- Modal de débogage pour le développement -->
+  <!-- Debug Modal for development -->
   <div class="modal fade" id="debugModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Informations de Débogage</h5>
+          <h5 class="modal-title">
+            <i class="bi bi-bug me-2"></i>Informations de Débogage
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body">
-          <pre id="debugInfo" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></pre>
+          <pre id="debugInfo" class="bg-light p-3 rounded border" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></pre>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+          <button class="btn btn-primary" id="copyDebugBtn">
+            <i class="bi bi-clipboard me-2"></i>Copier
+          </button>
         </div>
       </div>
     </div>
   </div>
   
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmationTitle">Confirmation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body" id="confirmationMessage">
+          Êtes-vous sûr de vouloir effectuer cette action?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-danger" id="confirmActionBtn">Confirmer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container for notifications -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+  
+  <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Optional: Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  
+  <!-- Main JS -->
   <script type="module" src="/src/main.js"></script>
+  
+  <!-- Password toggle script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Ensure light mode
+      document.documentElement.removeAttribute('data-theme');
+      
+      const togglePasswordBtn = document.getElementById('togglePassword');
+      const passwordInput = document.getElementById('userPassword');
+      
+      if (togglePasswordBtn && passwordInput) {
+        togglePasswordBtn.addEventListener('click', function() {
+          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordInput.setAttribute('type', type);
+          this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+      }
+      
+      // Copy debug info
+      const copyDebugBtn = document.getElementById('copyDebugBtn');
+      const debugInfo = document.getElementById('debugInfo');
+      
+      if (copyDebugBtn && debugInfo) {
+        copyDebugBtn.addEventListener('click', function() {
+          navigator.clipboard.writeText(debugInfo.textContent);
+          
+          // Show feedback
+          this.innerHTML = '<i class="bi bi-check me-2"></i>Copié!';
+          setTimeout(() => {
+            this.innerHTML = '<i class="bi bi-clipboard me-2"></i>Copier';
+          }, 2000);
+        });
+      }
+    });
+  </script>
 </body>
 </html>
