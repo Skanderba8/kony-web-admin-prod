@@ -1,6 +1,10 @@
-// src/bi/components/filters.js
-
-// Create a filter panel for the dashboard
+// src/bi/components/filters.js - Enhanced version
+/**
+ * Creates an enhanced filter panel for the dashboard
+ * @param {string} containerId - ID of the container element
+ * @param {Function} onChange - Callback function triggered when filters change
+ * @returns {Object} - Filter panel API
+ */
 export function createFilterPanel(containerId, onChange) {
   const container = document.getElementById(containerId);
   
@@ -12,24 +16,24 @@ export function createFilterPanel(containerId, onChange) {
   // Clear previous content
   container.innerHTML = '';
   
-  // Create filter panel structure
+  // Create filter panel structure with improved UI
   container.innerHTML = `
     <div class="card shadow-sm mb-4">
-      <div class="card-header bg-light py-3">
+      <div class="card-header bg-white py-3">
         <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">
+          <h5 class="mb-0 fw-semibold">
             <i class="bi bi-funnel me-2"></i>
             Filters
           </h5>
-          <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleFilters">
-            <i class="bi bi-chevron-down"></i>
+          <button type="button" class="btn btn-sm btn-icon btn-light" id="toggleFilters">
+            <i class="bi bi-chevron-up"></i>
           </button>
         </div>
       </div>
       <div class="card-body pt-0" id="filterBody">
         <div class="row gy-3 mt-3">
           <!-- Date Range -->
-          <div class="col-md-6">
+          <div class="col-12">
             <label for="dateRangeSelect" class="form-label">Date Range</label>
             <select class="form-select" id="dateRangeSelect">
               <option value="all">All Time</option>
@@ -46,20 +50,8 @@ export function createFilterPanel(containerId, onChange) {
             </select>
           </div>
           
-          <!-- Status -->
-          <div class="col-md-6">
-            <label for="statusSelect" class="form-label">Status</label>
-            <select class="form-select" id="statusSelect">
-              <option value="all">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="reviewed">Reviewed</option>
-              <option value="approved">Approved</option>
-            </select>
-          </div>
-          
           <!-- Custom Date Range (initially hidden) -->
-          <div class="col-md-12" id="customDateContainer" style="display: none;">
+          <div class="col-12" id="customDateContainer" style="display: none;">
             <div class="row gy-2">
               <div class="col-md-6">
                 <label for="startDate" class="form-label">Start Date</label>
@@ -72,8 +64,31 @@ export function createFilterPanel(containerId, onChange) {
             </div>
           </div>
           
+          <!-- Status -->
+          <div class="col-12">
+            <label for="statusSelect" class="form-label">Status</label>
+            <div class="status-filter-buttons" id="statusButtons">
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="statusRadio" id="statusAll" value="all" checked>
+                <label class="btn btn-outline-secondary" for="statusAll">All</label>
+                
+                <input type="radio" class="btn-check" name="statusRadio" id="statusDraft" value="draft">
+                <label class="btn btn-outline-secondary" for="statusDraft">Draft</label>
+                
+                <input type="radio" class="btn-check" name="statusRadio" id="statusSubmitted" value="submitted">
+                <label class="btn btn-outline-primary" for="statusSubmitted">Submitted</label>
+                
+                <input type="radio" class="btn-check" name="statusRadio" id="statusReviewed" value="reviewed">
+                <label class="btn btn-outline-info" for="statusReviewed">Reviewed</label>
+                
+                <input type="radio" class="btn-check" name="statusRadio" id="statusApproved" value="approved">
+                <label class="btn btn-outline-success" for="statusApproved">Approved</label>
+              </div>
+            </div>
+          </div>
+          
           <!-- Time Interval -->
-          <div class="col-md-6">
+          <div class="col-12">
             <label for="timeIntervalSelect" class="form-label">Time Grouping</label>
             <select class="form-select" id="timeIntervalSelect">
               <option value="day">Daily</option>
@@ -85,7 +100,7 @@ export function createFilterPanel(containerId, onChange) {
           </div>
           
           <!-- Client Filter (to be dynamically populated) -->
-          <div class="col-md-6">
+          <div class="col-12">
             <label for="clientSelect" class="form-label">Client</label>
             <select class="form-select" id="clientSelect">
               <option value="all">All Clients</option>
@@ -94,7 +109,7 @@ export function createFilterPanel(containerId, onChange) {
           </div>
           
           <!-- Technician Filter (to be dynamically populated) -->
-          <div class="col-md-6">
+          <div class="col-12">
             <label for="technicianSelect" class="form-label">Technician</label>
             <select class="form-select" id="technicianSelect">
               <option value="all">All Technicians</option>
@@ -102,9 +117,19 @@ export function createFilterPanel(containerId, onChange) {
             </select>
           </div>
           
+          <!-- Component Count Range -->
+          <div class="col-12">
+            <label class="form-label">Component Count</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="number" class="form-control" id="minComponents" min="0" placeholder="Min">
+              <span>to</span>
+              <input type="number" class="form-control" id="maxComponents" min="0" placeholder="Max">
+            </div>
+          </div>
+          
           <!-- Filter Buttons -->
-          <div class="col-md-6 d-flex align-items-end">
-            <div class="btn-group w-100">
+          <div class="col-12 mt-2">
+            <div class="d-grid gap-2">
               <button type="button" class="btn btn-primary" id="applyFilters">
                 <i class="bi bi-funnel-fill me-1"></i> Apply Filters
               </button>
@@ -127,8 +152,6 @@ export function createFilterPanel(containerId, onChange) {
   const resetFiltersBtn = document.getElementById('resetFilters');
   
   // Toggle filter panel
-// src/bi/components/filters.js (continued)
-  // Toggle filter panel
   toggleFiltersBtn.addEventListener('click', () => {
     if (filterBody.style.display === 'none') {
       filterBody.style.display = 'block';
@@ -150,14 +173,25 @@ export function createFilterPanel(containerId, onChange) {
   
   // Reset filters
   resetFiltersBtn.addEventListener('click', () => {
+    // Reset date range
     dateRangeSelect.value = 'all';
-    document.getElementById('statusSelect').value = 'all';
-    document.getElementById('timeIntervalSelect').value = 'month';
-    document.getElementById('clientSelect').value = 'all';
-    document.getElementById('technicianSelect').value = 'all';
+    customDateContainer.style.display = 'none';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
-    customDateContainer.style.display = 'none';
+    
+    // Reset status
+    document.getElementById('statusAll').checked = true;
+    
+    // Reset time interval
+    document.getElementById('timeIntervalSelect').value = 'month';
+    
+    // Reset client and technician
+    document.getElementById('clientSelect').value = 'all';
+    document.getElementById('technicianSelect').value = 'all';
+    
+    // Reset component count
+    document.getElementById('minComponents').value = '';
+    document.getElementById('maxComponents').value = '';
     
     // Trigger change callback with reset values
     if (onChange) {
@@ -170,6 +204,16 @@ export function createFilterPanel(containerId, onChange) {
     if (onChange) {
       onChange(getFilterValues());
     }
+  });
+  
+  // Status radio buttons
+  document.querySelectorAll('input[name="statusRadio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      // Auto-apply filter when status changes
+      if (onChange) {
+        onChange(getFilterValues());
+      }
+    });
   });
   
   // Helper function to get current filter values
@@ -237,11 +281,18 @@ export function createFilterPanel(containerId, onChange) {
       }
     }
     
+    // Get status filter
+    const statusRadio = document.querySelector('input[name="statusRadio"]:checked');
+    const status = statusRadio ? statusRadio.value : 'all';
+    
     // Get other filter values
-    const status = document.getElementById('statusSelect').value;
     const timeInterval = document.getElementById('timeIntervalSelect').value;
     const client = document.getElementById('clientSelect').value;
     const technician = document.getElementById('technicianSelect').value;
+    
+    // Get component count range
+    const minComponents = document.getElementById('minComponents').value || null;
+    const maxComponents = document.getElementById('maxComponents').value || null;
     
     return {
       dateRange,
@@ -250,10 +301,16 @@ export function createFilterPanel(containerId, onChange) {
       status: status === 'all' ? null : status,
       timeInterval,
       client: client === 'all' ? null : client,
-      technician: technician === 'all' ? null : technician
+      technician: technician === 'all' ? null : technician,
+      minComponents: minComponents ? parseInt(minComponents) : null,
+      maxComponents: maxComponents ? parseInt(maxComponents) : null
     };
   }
   
+  // Add custom styles
+  addFilterStyles();
+  
+  // Return public API
   return {
     updateOptions: function(clients = [], technicians = []) {
       // Populate client dropdown
@@ -263,6 +320,9 @@ export function createFilterPanel(containerId, onChange) {
       while (clientSelect.childNodes.length > 1) {
         clientSelect.removeChild(clientSelect.lastChild);
       }
+      
+      // Sort clients alphabetically
+      clients.sort();
       
       // Add client options
       clients.forEach(client => {
@@ -282,6 +342,9 @@ export function createFilterPanel(containerId, onChange) {
         technicianSelect.removeChild(technicianSelect.lastChild);
       }
       
+      // Sort technicians alphabetically
+      technicians.sort();
+      
       // Add technician options
       technicians.forEach(tech => {
         if (!tech) return; // Skip empty technician names
@@ -293,6 +356,96 @@ export function createFilterPanel(containerId, onChange) {
       });
     },
     
-    getFilters: getFilterValues
+    getFilters: getFilterValues,
+    
+    setFilters: function(filters) {
+      // Set date range
+      if (filters.dateRange) {
+        dateRangeSelect.value = filters.dateRange;
+        
+        if (filters.dateRange === 'custom') {
+          customDateContainer.style.display = 'block';
+          
+          if (filters.startDate) {
+            const startDate = new Date(filters.startDate);
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+          }
+          
+          if (filters.endDate) {
+            const endDate = new Date(filters.endDate);
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+          }
+        }
+      }
+      
+      // Set status
+      if (filters.status) {
+        const statusRadio = document.getElementById(`status${filters.status.charAt(0).toUpperCase() + filters.status.slice(1)}`);
+        if (statusRadio) {
+          statusRadio.checked = true;
+        }
+      }
+      
+      // Set time interval
+      if (filters.timeInterval) {
+        document.getElementById('timeIntervalSelect').value = filters.timeInterval;
+      }
+      
+      // Set client
+      if (filters.client) {
+        document.getElementById('clientSelect').value = filters.client;
+      }
+      
+      // Set technician
+      if (filters.technician) {
+        document.getElementById('technicianSelect').value = filters.technician;
+      }
+      
+      // Set component count range
+      if (filters.minComponents !== null && filters.minComponents !== undefined) {
+        document.getElementById('minComponents').value = filters.minComponents;
+      }
+      
+      if (filters.maxComponents !== null && filters.maxComponents !== undefined) {
+        document.getElementById('maxComponents').value = filters.maxComponents;
+      }
+    }
   };
+}
+
+/**
+ * Add custom styles for filter panel
+ */
+function addFilterStyles() {
+  // Check if styles already exist
+  if (document.getElementById('filter-custom-styles')) return;
+  
+  // Create style element
+  const style = document.createElement('style');
+  style.id = 'filter-custom-styles';
+  style.textContent = `
+    /* Status radio buttons */
+    .status-filter-buttons .btn-group {
+      flex-wrap: wrap;
+    }
+    
+    .status-filter-buttons .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    /* Dark mode compatibility */
+    [data-theme="dark"] .card-header {
+      background-color: #2b3035 !important;
+    }
+    
+    [data-theme="dark"] .btn-light {
+      background-color: #343a40;
+      border-color: #343a40;
+      color: #f8f9fa;
+    }
+  `;
+  
+  // Add to document
+  document.head.appendChild(style);
 }

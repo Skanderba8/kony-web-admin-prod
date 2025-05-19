@@ -1,4 +1,4 @@
-// src/bi/components/charts.js
+// src/bi/components/charts.js - Enhanced version
 import Chart from 'chart.js/auto';
 import * as echarts from 'echarts';
 
@@ -22,51 +22,57 @@ export function createEChartInstance(elementId, options) {
   return chart;
 }
 
-// Render report status pie chart
+// Render report status pie chart with improved visuals
 export function renderStatusPieChart(elementId, data) {
-  const labels = Object.keys(data).map(key => {
-    // Make status labels more readable
-    switch(key) {
-      case 'draft': return 'Draft';
-      case 'submitted': return 'Submitted';
-      case 'reviewed': return 'Reviewed';
-      case 'approved': return 'Approved';
-      default: return key.charAt(0).toUpperCase() + key.slice(1);
-    }
-  });
+  // Define appealing colors
+  const colorPalette = {
+    draft: 'rgba(108, 117, 125, 0.85)',     // gray for draft
+    submitted: 'rgba(13, 110, 253, 0.85)',   // blue for submitted
+    reviewed: 'rgba(111, 66, 193, 0.85)',    // purple for reviewed
+    approved: 'rgba(25, 135, 84, 0.85)'      // green for approved
+  };
   
-  const values = Object.values(data);
+  // Ensure all status types exist
+  const statusLabels = {
+    draft: 'Draft',
+    submitted: 'Submitted',
+    reviewed: 'Reviewed',
+    approved: 'Approved'
+  };
+  
+  // Prepare labels and data
+  const labels = Object.keys(statusLabels);
+  const values = labels.map(key => data[key] || 0);
+  const backgroundColors = labels.map(key => colorPalette[key]);
+  const borderColors = labels.map(key => colorPalette[key].replace('0.85', '1'));
   
   const chartConfig = {
-    type: 'pie',
+    type: 'doughnut',
     data: {
-      labels: labels,
+      labels: labels.map(key => statusLabels[key]),
       datasets: [{
         data: values,
-        backgroundColor: [
-          'rgba(108, 117, 125, 0.8)',  // gray for draft
-          'rgba(0, 123, 255, 0.8)',    // blue for submitted
-          'rgba(111, 66, 193, 0.8)',   // purple for reviewed
-          'rgba(40, 167, 69, 0.8)'     // green for approved
-        ],
-        borderColor: [
-          'rgba(108, 117, 125, 1)',
-          'rgba(0, 123, 255, 1)',
-          'rgba(111, 66, 193, 1)',
-          'rgba(40, 167, 69, 1)'
-        ],
-        borderWidth: 1
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: 1,
+        hoverOffset: 10
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
       plugins: {
         legend: {
           position: 'right',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 15
+          }
         },
         title: {
-          display: true,
-          text: 'Reports by Status'
+          display: false
         },
         tooltip: {
           callbacks: {
@@ -86,179 +92,76 @@ export function renderStatusPieChart(elementId, data) {
   return createChartJsChart(elementId, chartConfig);
 }
 
-// Render technician performance chart
-export function renderTechnicianChart(elementId, technicianData) {
-  const techNames = Object.keys(technicianData);
-  const reportCounts = techNames.map(name => technicianData[name].totalReports);
-  const avgCompletionDays = techNames.map(name => technicianData[name].avgCompletionDays);
-  const componentsPerReport = techNames.map(name => technicianData[name].avgComponentsPerReport);
+// Render time series chart with improved visuals
+export function renderTimeSeriesChart(elementId, timeSeriesData) {
+  // Format month labels
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
-  const chartConfig = {
-    type: 'bar',
-    data: {
-      labels: techNames,
-      datasets: [
-        {
-          label: 'Total Reports',
-          data: reportCounts,
-          backgroundColor: 'rgba(0, 123, 255, 0.7)',
-          borderColor: 'rgba(0, 123, 255, 1)',
-          borderWidth: 1,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Avg. Completion Days',
-          data: avgCompletionDays,
-          backgroundColor: 'rgba(255, 193, 7, 0.7)',
-          borderColor: 'rgba(255, 193, 7, 1)',
-          borderWidth: 1,
-          yAxisID: 'y1'
-        },
-        {
-          label: 'Avg. Components per Report',
-          data: componentsPerReport,
-          backgroundColor: 'rgba(40, 167, 69, 0.7)',
-          borderColor: 'rgba(40, 167, 69, 1)',
-          borderWidth: 1,
-          yAxisID: 'y2'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        title: {
-          display: true,
-          text: 'Technician Performance Metrics'
-        }
-      },
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'Reports'
-          }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          grid: {
-            drawOnChartArea: false,
-          },
-          title: {
-            display: true,
-            text: 'Days'
-          }
-        },
-        y2: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          grid: {
-            drawOnChartArea: false,
-          },
-          title: {
-            display: true,
-            text: 'Components'
-          }
-        }
-      }
-    }
+  const formatMonthLabel = (dateString) => {
+    const [year, month] = dateString.split('-');
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
   
-  return createChartJsChart(elementId, chartConfig);
-}
-
-// Render time series chart
-export function renderTimeSeriesChart(elementId, timeSeriesData) {
-  // Prepare data
-  const allDates = new Set([
-    ...timeSeriesData.created.map(item => item.date),
-    ...timeSeriesData.submitted.map(item => item.date)
-  ]);
-  
-  const sortedDates = [...allDates].sort();
-  
-  // Create lookup maps
-  const createdMap = new Map(timeSeriesData.created.map(item => [item.date, item.count]));
-  const submittedMap = new Map(timeSeriesData.submitted.map(item => [item.date, item.count]));
-  
-  // Prepare labels and datasets
-  const labels = sortedDates;
-  const createdData = sortedDates.map(date => createdMap.get(date) || 0);
-  const submittedData = sortedDates.map(date => submittedMap.get(date) || 0);
-  
-  // Format date labels
-  const formattedLabels = labels.map(date => {
-    if (date.includes('-W')) {
-      // Week format
-      const [year, week] = date.split('-W');
-      return `Week ${week}, ${year}`;
-    } else if (date.includes('-')) {
-      // Handle YYYY-MM or YYYY-MM-DD
-      const parts = date.split('-');
-      if (parts.length === 2) {
-        // Month format
-        return new Date(parts[0], parts[1] - 1, 1).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short'
-        });
-      } else {
-        // Day format
-        return new Date(date).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      }
-    }
-    return date;
+  // Prepare chart data
+  const labels = timeSeriesData.created.map(item => formatMonthLabel(item.date));
+  const createdData = timeSeriesData.created.map(item => item.count);
+  const submittedData = timeSeriesData.submitted.map(item => {
+    const matchingDate = timeSeriesData.created.find(c => c.date === item.date);
+    return matchingDate ? item.count : 0;
   });
   
   const chartConfig = {
     type: 'line',
     data: {
-      labels: formattedLabels,
+      labels: labels,
       datasets: [
         {
           label: 'Reports Created',
           data: createdData,
-          borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          borderColor: 'rgba(13, 110, 253, 1)', // Primary blue
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
           fill: true,
-          tension: 0.3
+          tension: 0.4,
+          borderWidth: 3,
+          pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+          pointRadius: 4,
+          pointHoverRadius: 6
         },
         {
-// src/bi/components/charts.js (continued)
           label: 'Reports Submitted',
           data: submittedData,
-          borderColor: 'rgba(40, 167, 69, 1)',
-          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          borderColor: 'rgba(25, 135, 84, 1)', // Success green
+          backgroundColor: 'rgba(25, 135, 84, 0.1)',
           fill: true,
-          tension: 0.3
+          tension: 0.4,
+          borderWidth: 3,
+          pointBackgroundColor: 'rgba(25, 135, 84, 1)',
+          pointRadius: 4,
+          pointHoverRadius: 6
         }
       ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
         legend: {
           position: 'top',
-        },
-        title: {
-          display: true,
-          text: 'Report Creation & Submission Trends'
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
         },
         tooltip: {
           mode: 'index',
-          intersect: false
+          intersect: false,
+          padding: 10,
+          caretPadding: 6,
+          boxPadding: 6
         }
       },
       scales: {
@@ -269,6 +172,11 @@ export function renderTimeSeriesChart(elementId, timeSeriesData) {
         },
         y: {
           beginAtZero: true,
+          suggestedMax: Math.max(...createdData, ...submittedData) + 2,
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          },
           title: {
             display: true,
             text: 'Number of Reports'
@@ -281,7 +189,7 @@ export function renderTimeSeriesChart(elementId, timeSeriesData) {
   return createChartJsChart(elementId, chartConfig);
 }
 
-// Render component distribution chart
+// Render component distribution chart with a modern look
 export function renderComponentDistributionChart(elementId, componentStats) {
   // Count components by type
   const componentCounts = {};
@@ -302,50 +210,71 @@ export function renderComponentDistributionChart(elementId, componentStats) {
     customComponents: 'Custom Components'
   };
   
+  // Sort by count (descending)
+  const sortedComponents = Object.entries(componentCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, count]) => ({
+      type: formattedTypes[type] || type,
+      count
+    }));
+  
   const chartOptions = {
     tooltip: {
       trigger: 'axis',
       axisPointer: {
         type: 'shadow'
-      }
+      },
+      confine: true,
+      formatter: '{b}: {c}'
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: '5%',
+      right: '5%',
+      bottom: '8%',
+      top: '3%',
       containLabel: true
     },
     xAxis: {
-      type: 'value'
+      type: 'value',
+      name: 'Count',
+      nameLocation: 'middle',
+      nameGap: 30
     },
     yAxis: {
       type: 'category',
-      data: Object.keys(componentCounts).map(type => formattedTypes[type] || type),
+      data: sortedComponents.map(item => item.type),
       axisLabel: {
         interval: 0,
-        width: 80,
-        overflow: 'truncate'
-      }
+        width: 120,
+        overflow: 'truncate',
+        fontSize: 12
+      },
+      inverse: true
     },
     series: [
       {
         name: 'Count',
         type: 'bar',
-        data: Object.values(componentCounts),
+        data: sortedComponents.map(item => item.count),
         itemStyle: {
           color: function(params) {
             const colors = [
-              '#5470c6', '#91cc75', '#fac858', '#ee6666',
-              '#73c0de', '#3ba272', '#fc8452', '#9a60b4',
-              '#ea7ccc'
+              '#0d6efd', '#6610f2', '#6f42c1', '#d63384', 
+              '#dc3545', '#fd7e14', '#ffc107', '#198754', 
+              '#20c997', '#0dcaf0'
             ];
             return colors[params.dataIndex % colors.length];
-          }
+          },
+          borderRadius: [0, 4, 4, 0]
         },
         label: {
           show: true,
-          position: 'right'
-        }
+          position: 'right',
+          formatter: '{c}',
+          fontSize: 12,
+          fontWeight: 'bold'
+        },
+        barWidth: '60%'
       }
     ]
   };
@@ -353,7 +282,97 @@ export function renderComponentDistributionChart(elementId, componentStats) {
   return createEChartInstance(elementId, chartOptions);
 }
 
-// Render heatmap for component distribution by floor
+// NEW: Render technician performance comparison chart
+export function renderTechnicianPerformanceChart(elementId, technicianData) {
+  // Process data for the chart
+  const techNames = Object.keys(technicianData).filter(name => name && name.trim());
+  
+  // Limit to top 5 technicians by total reports
+  const topTechnicians = techNames
+    .map(name => ({ name, reports: technicianData[name].totalReports }))
+    .sort((a, b) => b.reports - a.reports)
+    .slice(0, 5)
+    .map(tech => tech.name);
+  
+  // Prepare data for each metric
+  const datasets = [
+    {
+      label: 'Submitted Reports',
+      data: topTechnicians.map(name => technicianData[name].statusCounts.submitted || 0),
+      backgroundColor: 'rgba(13, 110, 253, 0.8)', // Primary blue
+      borderColor: 'rgba(13, 110, 253, 1)',
+      borderWidth: 1,
+      borderRadius: 4
+    },
+    {
+      label: 'Reviewed Reports',
+      data: topTechnicians.map(name => technicianData[name].statusCounts.reviewed || 0),
+      backgroundColor: 'rgba(111, 66, 193, 0.8)', // Purple
+      borderColor: 'rgba(111, 66, 193, 1)',
+      borderWidth: 1,
+      borderRadius: 4
+    },
+    {
+      label: 'Approved Reports',
+      data: topTechnicians.map(name => technicianData[name].statusCounts.approved || 0),
+      backgroundColor: 'rgba(25, 135, 84, 0.8)', // Success green
+      borderColor: 'rgba(25, 135, 84, 1)',
+      borderWidth: 1,
+      borderRadius: 4
+    }
+  ];
+  
+  // Create chart configuration
+  const chartConfig = {
+    type: 'bar',
+    data: {
+      labels: topTechnicians,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        title: {
+          display: false
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          },
+          title: {
+            display: true,
+            text: 'Number of Reports'
+          }
+        }
+      }
+    }
+  };
+  
+  return createChartJsChart(elementId, chartConfig);
+}
+
+// Render heatmap for component distribution by floor (removed if not needed)
 export function renderComponentHeatmap(elementId, componentStats) {
   // Process data to get component counts by floor
   const floorComponentMap = new Map();
@@ -388,22 +407,22 @@ export function renderComponentHeatmap(elementId, componentStats) {
   // Take top 15 floors by component count
   const topFloors = floorData.slice(0, 15);
   
+  // Format type names for better readability
+  const formattedTypes = {
+    networkCabinets: 'Network Cabinets',
+    perforations: 'Perforations',
+    accessTraps: 'Access Traps',
+    cablePaths: 'Cable Paths',
+    cableTrunkings: 'Cable Trunkings',
+    conduits: 'Conduits',
+    copperCablings: 'Copper Cablings',
+    fiberOpticCablings: 'Fiber Optic',
+    customComponents: 'Custom'
+  };
+  
   // Prepare heatmap data
   const yAxisData = topFloors.map(d => `${d.client} - ${d.floor}`);
-  const xAxisData = componentTypes.map(type => {
-    const formattedTypes = {
-      networkCabinets: 'Network Cabinets',
-      perforations: 'Perforations',
-      accessTraps: 'Access Traps',
-      cablePaths: 'Cable Paths',
-      cableTrunkings: 'Cable Trunkings',
-      conduits: 'Conduits',
-      copperCablings: 'Copper Cablings',
-      fiberOpticCablings: 'Fiber Optic',
-      customComponents: 'Custom'
-    };
-    return formattedTypes[type] || type;
-  });
+  const xAxisData = componentTypes.map(type => formattedTypes[type] || type);
   
   const data = [];
   topFloors.forEach((floor, y) => {
@@ -428,7 +447,8 @@ export function renderComponentHeatmap(elementId, componentStats) {
       data: xAxisData,
       axisLabel: {
         interval: 0,
-        rotate: 45
+        rotate: 45,
+        fontSize: 10
       },
       splitArea: {
         show: true
@@ -437,6 +457,9 @@ export function renderComponentHeatmap(elementId, componentStats) {
     yAxis: {
       type: 'category',
       data: yAxisData,
+      axisLabel: {
+        fontSize: 10
+      },
       splitArea: {
         show: true
       }
@@ -447,14 +470,16 @@ export function renderComponentHeatmap(elementId, componentStats) {
       calculable: true,
       orient: 'horizontal',
       left: 'center',
-      bottom: '0%'
+      bottom: '0%',
+      color: ['#198754', '#20c997', '#0dcaf0', '#E8F4F8']
     },
     series: [{
       name: 'Component Count',
       type: 'heatmap',
       data: data,
       label: {
-        show: true
+        show: true,
+        fontSize: 9
       },
       emphasis: {
         itemStyle: {

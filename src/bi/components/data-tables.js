@@ -1,6 +1,12 @@
-    // src/bi/components/data-tables.js
-
-// Create a sortable data table
+// src/bi/components/data-tables.js - Enhanced version
+/**
+ * Creates a modern, sortable data table with all features
+ * @param {string} containerId - ID of the container element
+ * @param {Array} data - Array of data objects to display
+ * @param {Array} columns - Array of column configuration objects
+ * @param {Object} options - Additional options for the table
+ * @returns {HTMLElement} - The created table element
+ */
 export function createDataTable(containerId, data, columns, options = {}) {
   const container = document.getElementById(containerId);
   
@@ -12,25 +18,49 @@ export function createDataTable(containerId, data, columns, options = {}) {
   // Clear previous content
   container.innerHTML = '';
   
+  // Create wrapper with card styling
+  const wrapper = document.createElement('div');
+  wrapper.className = 'table-responsive';
+  
+  // Add title if provided
+  if (options.title) {
+    const titleSection = document.createElement('div');
+    titleSection.className = 'table-title px-3 py-2 bg-light border-bottom';
+    titleSection.innerHTML = `<h6 class="mb-0">${options.title}</h6>`;
+    wrapper.appendChild(titleSection);
+  }
+  
   // Create the table element
   const table = document.createElement('table');
-  table.className = options.tableClass || 'table table-striped table-hover table-sm';
+  table.className = options.tableClass || 'table table-striped table-hover align-middle mb-0';
   
   // Create table header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
+  headerRow.className = 'table-light';
   
   columns.forEach(column => {
     const th = document.createElement('th');
     th.textContent = column.title;
-    
-    if (column.sortable) {
-      th.classList.add('sortable');
-      th.addEventListener('click', () => sortTable(table, column.field));
-    }
+    th.style.position = 'relative';
     
     if (column.width) {
       th.style.width = column.width;
+    }
+    
+    if (column.sortable) {
+      th.classList.add('sortable');
+      th.style.cursor = 'pointer';
+      
+      // Add sort indicator
+      th.innerHTML = `
+        ${column.title}
+        <span class="sort-indicator ms-1 opacity-50">
+          <i class="bi bi-arrow-down-up"></i>
+        </span>
+      `;
+      
+      th.addEventListener('click', () => sortTable(table, column.field));
     }
     
     headerRow.appendChild(th);
@@ -43,8 +73,19 @@ export function createDataTable(containerId, data, columns, options = {}) {
   const tbody = document.createElement('tbody');
   
   // Add data rows
-  data.forEach(item => {
+  data.forEach((item, index) => {
     const row = document.createElement('tr');
+    
+    // Add hover effect for clickable rows
+    if (options.onRowClick) {
+      row.style.cursor = 'pointer';
+      row.classList.add('hoverable-row');
+    }
+    
+    // Add striping effect
+    if (index % 2 === 1) {
+      row.classList.add('table-striped-row');
+    }
     
     columns.forEach(column => {
       const cell = document.createElement('td');
@@ -74,7 +115,6 @@ export function createDataTable(containerId, data, columns, options = {}) {
     
     // Add row click handler if provided
     if (options.onRowClick) {
-      row.style.cursor = 'pointer';
       row.addEventListener('click', () => options.onRowClick(item));
     }
     
@@ -82,19 +122,23 @@ export function createDataTable(containerId, data, columns, options = {}) {
   });
   
   table.appendChild(tbody);
+  wrapper.appendChild(table);
   
-  // Create table wrapper with optional caption/title
-  const wrapper = document.createElement('div');
-  wrapper.className = 'table-responsive mb-4';
-  
-  if (options.title) {
-    const title = document.createElement('h5');
-    title.className = 'mb-3';
-    title.textContent = options.title;
-    wrapper.appendChild(title);
+  // Create empty state if no data
+  if (data.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'text-center p-4 text-muted';
+    emptyState.innerHTML = `
+      <div class="mb-3">
+        <i class="bi bi-inbox fs-1 opacity-50"></i>
+      </div>
+      <h5>No data to display</h5>
+      <p class="mb-0">There are no records matching the current criteria.</p>
+    `;
+    wrapper.innerHTML = '';
+    wrapper.appendChild(emptyState);
   }
   
-  wrapper.appendChild(table);
   container.appendChild(wrapper);
   
   // Initialize table pagination if needed
@@ -102,18 +146,25 @@ export function createDataTable(containerId, data, columns, options = {}) {
     createTablePagination(wrapper, table, options.pagination);
   }
   
+  // Add custom styles for table
+  addTableStyles();
+  
   return table;
 }
 
-// Sort table by column
+/**
+ * Sort table by column
+ * @param {HTMLElement} table - The table element
+ * @param {string} field - The field to sort by
+ */
 function sortTable(table, field) {
   const tbody = table.querySelector('tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
-  const headers = table.querySelectorAll('th.sortable');
+  const headers = Array.from(table.querySelectorAll('th.sortable'));
   
   // Find the header element for this field
-  const headerEl = Array.from(headers).find(th => 
-    th.textContent.toLowerCase() === field.toLowerCase() ||
+  const headerEl = headers.find(th => 
+    th.textContent.toLowerCase().includes(field.toLowerCase()) ||
     th.dataset.field === field
   );
   
@@ -126,12 +177,22 @@ function sortTable(table, field) {
   // Reset all headers
   headers.forEach(th => {
     th.dataset.sortDirection = '';
-    th.classList.remove('sorted-asc', 'sorted-desc');
+    const indicator = th.querySelector('.sort-indicator');
+    if (indicator) {
+      indicator.innerHTML = '<i class="bi bi-arrow-down-up"></i>';
+      indicator.classList.add('opacity-50');
+    }
   });
   
   // Set new sort direction
   headerEl.dataset.sortDirection = newDir;
-  headerEl.classList.add(`sorted-${newDir}`);
+  const indicator = headerEl.querySelector('.sort-indicator');
+  if (indicator) {
+    indicator.innerHTML = newDir === 'asc' ? 
+      '<i class="bi bi-arrow-up"></i>' : 
+      '<i class="bi bi-arrow-down"></i>';
+    indicator.classList.remove('opacity-50');
+  }
   
   // Sort the rows
   rows.sort((a, b) => {
@@ -148,11 +209,19 @@ function sortTable(table, field) {
   rows.forEach(row => tbody.appendChild(row));
 }
 
-// Get cell value for sorting
+/**
+ * Get cell value for sorting
+ * @param {HTMLElement} row - The table row
+ * @param {string} field - The field to get
+ * @returns {string} - The cell value
+ */
 function getCellValue(row, field) {
   const cells = row.querySelectorAll('td');
   const index = Array.from(row.parentNode.parentNode.querySelector('thead tr').cells)
-    .findIndex(cell => cell.textContent.toLowerCase() === field.toLowerCase() || cell.dataset.field === field);
+    .findIndex(cell => 
+      cell.textContent.toLowerCase().includes(field.toLowerCase()) || 
+      cell.dataset.field === field
+    );
   
   if (index === -1) return '';
   
@@ -160,7 +229,12 @@ function getCellValue(row, field) {
   return cell.textContent.trim();
 }
 
-// Create pagination for a table
+/**
+ * Create pagination for a table
+ * @param {HTMLElement} wrapper - The table wrapper element
+ * @param {HTMLElement} table - The table element
+ * @param {Object} options - Pagination options
+ */
 function createTablePagination(wrapper, table, options) {
   const tbody = table.querySelector('tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -172,7 +246,11 @@ function createTablePagination(wrapper, table, options) {
   // Create pagination container
   const paginationEl = document.createElement('nav');
   paginationEl.setAttribute('aria-label', 'Table pagination');
-  paginationEl.className = 'mt-3';
+  paginationEl.className = 'mt-3 d-flex justify-content-between align-items-center px-3 py-2 border-top';
+  
+  // Create page info element
+  const pageInfoEl = document.createElement('div');
+  pageInfoEl.className = 'pagination-info text-muted small';
   
   // Create pagination logic
   function showPage(page) {
@@ -189,6 +267,9 @@ function createTablePagination(wrapper, table, options) {
       rows[i].style.display = '';
     }
     
+    // Update page info
+    pageInfoEl.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${rows.length} entries`;
+    
     // Update pagination UI
     updatePagination();
   }
@@ -197,7 +278,7 @@ function createTablePagination(wrapper, table, options) {
   function updatePagination() {
     // Create pagination list
     const ul = document.createElement('ul');
-    ul.className = 'pagination pagination-sm justify-content-end';
+    ul.className = 'pagination pagination-sm mb-0';
     
     // Previous button
     const prevLi = document.createElement('li');
@@ -260,42 +341,166 @@ function createTablePagination(wrapper, table, options) {
     ul.appendChild(nextLi);
     
     // Update pagination element
+    const paginationControls = document.createElement('div');
+    paginationControls.appendChild(ul);
+    
+    // Update pagination container
     paginationEl.innerHTML = '';
-    paginationEl.appendChild(ul);
+    paginationEl.appendChild(pageInfoEl);
+    paginationEl.appendChild(paginationControls);
   }
   
-  // Show first page and append pagination
+  // Append pagination container
   wrapper.appendChild(paginationEl);
+  
+  // Show first page
   showPage(1);
 }
 
-// Create a data table specifically for technician performance
+/**
+ * Add custom styles for tables
+ */
+function addTableStyles() {
+  // Check if styles already exist
+  if (document.getElementById('table-custom-styles')) return;
+  
+  // Create style element
+  const style = document.createElement('style');
+  style.id = 'table-custom-styles';
+  style.textContent = `
+    .table-title {
+      background-color: var(--bs-light);
+      border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    .table th.sortable {
+      white-space: nowrap;
+    }
+    
+    .table th.sortable .sort-indicator {
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    .hoverable-row:hover {
+      background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    
+    .pagination-info {
+      color: var(--bs-secondary);
+    }
+    
+    /* Status badges */
+    .status-badge {
+      display: inline-block;
+      padding: 0.25em 0.6em;
+      font-size: 0.75em;
+      font-weight: 700;
+      border-radius: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Dark mode compatibility */
+    [data-theme="dark"] .table-title,
+    [data-theme="dark"] .pagination-info {
+      background-color: #2b3035 !important;
+      color: #adb5bd !important;
+    }
+    
+    [data-theme="dark"] .hoverable-row:hover {
+      background-color: rgba(13, 110, 253, 0.2) !important;
+    }
+  `;
+  
+  // Add to document
+  document.head.appendChild(style);
+}
+
+/**
+ * Creates a technician performance table with enhanced styling
+ * @param {string} containerId - ID of the container element
+ * @param {Object} technicianData - Technician performance data
+ * @returns {HTMLElement} - The created table
+ */
 export function createTechnicianTable(containerId, technicianData) {
-  const tableData = Object.entries(technicianData).map(([name, data]) => ({
-    name,
-    totalReports: data.totalReports,
-    submitted: data.statusCounts.submitted,
-    reviewed: data.statusCounts.reviewed,
-    approved: data.statusCounts.approved,
-    avgDays: data.avgCompletionDays,
-    components: data.componentsDocumented,
-    avgComponents: data.avgComponentsPerReport,
-    mostRecent: data.mostRecentReport ? new Date(data.mostRecentReport.createdAt) : null
-  }));
+  // Convert object to array data
+  const tableData = Object.entries(technicianData)
+    .filter(([name]) => name && name.trim()) // Filter out empty names
+    .map(([name, data]) => ({
+      name,
+      totalReports: data.totalReports,
+      submitted: data.statusCounts.submitted || 0,
+      reviewed: data.statusCounts.reviewed || 0,
+      approved: data.statusCounts.approved || 0,
+      avgDays: data.avgCompletionDays,
+      components: data.componentsDocumented,
+      avgComponents: data.avgComponentsPerReport,
+      mostRecent: data.mostRecentReport ? new Date(data.mostRecentReport.createdAt) : null
+    }))
+    .sort((a, b) => b.totalReports - a.totalReports); // Sort by total reports desc
   
   const columns = [
-    { field: 'name', title: 'Technician', sortable: true },
-    { field: 'totalReports', title: 'Total Reports', sortable: true },
-    { field: 'submitted', title: 'Submitted', sortable: true },
-    { field: 'reviewed', title: 'Reviewed', sortable: true },
-    { field: 'approved', title: 'Approved', sortable: true },
+    { 
+      field: 'name', 
+      title: 'Technician', 
+      sortable: true,
+      formatter: (value) => {
+        // Create initials from name
+        const initials = value.split(' ')
+          .map(part => part.charAt(0).toUpperCase())
+          .join('')
+          .substring(0, 2);
+          
+        return `
+          <div class="d-flex align-items-center">
+            <div class="avatar avatar-sm me-2 bg-primary text-white" data-initial="${initials}"></div>
+            <div>${value}</div>
+          </div>
+        `;
+      },
+      html: true
+    },
+    { 
+      field: 'totalReports', 
+      title: 'Total', 
+      sortable: true,
+      formatter: (value) => `<span class="fw-bold">${value}</span>`,
+      html: true
+    },
+    { 
+      field: 'submitted', 
+      title: 'Submitted', 
+      sortable: true,
+      formatter: (value) => `<span class="text-primary">${value}</span>`,
+      html: true
+    },
+    { 
+      field: 'reviewed', 
+      title: 'Reviewed', 
+      sortable: true,
+      formatter: (value) => `<span class="text-info">${value}</span>`,
+      html: true
+    },
+    { 
+      field: 'approved', 
+      title: 'Approved', 
+      sortable: true,
+      formatter: (value) => `<span class="text-success">${value}</span>`,
+      html: true
+    },
     { 
       field: 'avgDays', 
-      title: 'Avg. Days to Submit', 
+      title: 'Avg. Days', 
       sortable: true,
-      formatter: value => value.toFixed(1)
+      formatter: value => `<span class="small">${value.toFixed(1)}</span>`,
+      html: true
     },
-    { field: 'components', title: 'Components', sortable: true },
+    { 
+      field: 'components', 
+      title: 'Components', 
+      sortable: true
+    },
     { 
       field: 'avgComponents', 
       title: 'Avg. Components', 
@@ -304,24 +509,41 @@ export function createTechnicianTable(containerId, technicianData) {
     },
     { 
       field: 'mostRecent', 
-      title: 'Most Recent', 
+      title: 'Last Activity', 
       sortable: true,
-      formatter: value => value ? value.toLocaleDateString() : 'N/A'
+      formatter: value => {
+        if (!value) return 'Never';
+        
+        // Format date
+        const now = new Date();
+        const diff = now - value;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        if (days < 7) return `${days} days ago`;
+        
+        return value.toLocaleDateString();
+      }
     }
   ];
   
   return createDataTable(containerId, tableData, columns, {
-    title: 'Technician Performance Metrics',
     pagination: { rowsPerPage: 5 }
   });
 }
 
-// Create a report summary table
+/**
+ * Creates a report summary table with enhanced styling
+ * @param {string} containerId - ID of the container element
+ * @param {Array} reports - Array of report data
+ * @returns {HTMLElement} - The created table
+ */
 export function createReportSummaryTable(containerId, reports) {
   const tableData = reports.map(report => ({
     id: report.id,
     clientName: report.clientName || 'Unknown',
-    technicianName: report.technicianName || 'Unknown',
+    technicianName: report.technicianName || 'Unassigned',
     status: report.status,
     createdAt: new Date(report.createdAt),
     submittedAt: report.submittedAt ? new Date(report.submittedAt) : null,
@@ -330,24 +552,44 @@ export function createReportSummaryTable(containerId, reports) {
   }));
   
   const columns = [
-    { field: 'clientName', title: 'Client', sortable: true },
-    { field: 'technicianName', title: 'Technician', sortable: true },
+    { 
+      field: 'clientName', 
+      title: 'Client', 
+      sortable: true,
+      formatter: (value, row) => `
+        <div class="fw-medium">${value}</div>
+        <div class="text-muted small">${row.location}</div>
+      `,
+      html: true
+    },
+    { 
+      field: 'technicianName', 
+      title: 'Technician', 
+      sortable: true
+    },
     { 
       field: 'status', 
       title: 'Status', 
       sortable: true,
       formatter: value => {
-        const status = value.charAt(0).toUpperCase() + value.slice(1);
-        let badgeClass = 'secondary';
+        const statusLabels = {
+          draft: 'Draft',
+          submitted: 'Submitted',
+          reviewed: 'Reviewed',
+          approved: 'Approved'
+        };
         
-        switch(value) {
-          case 'draft': badgeClass = 'secondary'; break;
-          case 'submitted': badgeClass = 'primary'; break;
-          case 'reviewed': badgeClass = 'info'; break;
-          case 'approved': badgeClass = 'success'; break;
-        }
+        const statusColors = {
+          draft: 'secondary',
+          submitted: 'primary',
+          reviewed: 'info',
+          approved: 'success'
+        };
         
-        return `<span class="badge bg-${badgeClass}">${status}</span>`;
+        const label = statusLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+        const color = statusColors[value] || 'secondary';
+        
+        return `<span class="status-badge bg-${color} bg-opacity-10 text-${color}">${label}</span>`;
       },
       html: true
     },
@@ -355,26 +597,76 @@ export function createReportSummaryTable(containerId, reports) {
       field: 'createdAt', 
       title: 'Created', 
       sortable: true,
-      formatter: value => value.toLocaleDateString()
+      formatter: value => {
+        const formattedDate = value.toLocaleDateString();
+        const formattedTime = value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div>${formattedDate}</div>
+          <small class="text-muted">${formattedTime}</small>
+        `;
+      },
+      html: true
     },
     { 
-      field: 'submittedAt', 
-      title: 'Submitted', 
+      field: 'components', 
+      title: 'Components', 
       sortable: true,
-      formatter: value => value ? value.toLocaleDateString() : 'Not submitted'
+      formatter: value => `<span class="badge bg-light text-dark">${value}</span>`,
+      html: true
     },
-    { field: 'components', title: 'Components', sortable: true },
-    { field: 'location', title: 'Location', sortable: true }
+    {
+      field: 'actions',
+      title: 'Actions',
+      formatter: (value, row) => `
+        <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-outline-primary view-report-btn" data-id="${row.id}" data-bs-toggle="tooltip" title="View Details">
+            <i class="bi bi-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary download-pdf-btn" data-id="${row.id}" data-bs-toggle="tooltip" title="Download PDF">
+            <i class="bi bi-download"></i>
+          </button>
+        </div>
+      `,
+      html: true
+    }
   ];
   
-  return createDataTable(containerId, tableData, columns, {
-    title: 'Recent Reports',
-    pagination: { rowsPerPage: 10 },
-    onRowClick: report => showReportDetails(report.id)
+  const table = createDataTable(containerId, tableData, columns, {
+    pagination: { rowsPerPage: 10 }
   });
+  
+  // Add event handlers for buttons
+  document.querySelectorAll('.view-report-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const reportId = btn.getAttribute('data-id');
+      console.log(`View report details for ID: ${reportId}`);
+      // Implementation would go here
+    });
+  });
+  
+  document.querySelectorAll('.download-pdf-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const reportId = btn.getAttribute('data-id');
+      console.log(`Download PDF for report ID: ${reportId}`);
+      // Call the download function from pdf.js
+      try {
+        downloadReportPdf(reportId);
+      } catch (error) {
+        console.error('Error initiating PDF download:', error);
+      }
+    });
+  });
+  
+  return table;
 }
 
-// Helper function to calculate total components in a report
+/**
+ * Count the total components in a report
+ * @param {Object} report - The report object
+ * @returns {number} - The total number of components
+ */
 function calculateTotalComponents(report) {
   if (!report.floors) return 0;
   
@@ -396,8 +688,32 @@ function calculateTotalComponents(report) {
   return total;
 }
 
-// Show report details (placeholder - to be implemented in main dashboard)
-function showReportDetails(reportId) {
-  console.log(`Showing details for report: ${reportId}`);
-  // This will be implemented in the main dashboard.js
+/**
+ * Download a report as PDF
+ * This is a stub function that should be implemented in the main application
+ * @param {string} reportId - The ID of the report to download
+ */
+function downloadReportPdf(reportId) {
+  // This should be replaced with an actual implementation
+  console.log(`Downloading PDF for report ID: ${reportId}`);
+  
+  // Typically, this would navigate to the reports module and call its downloadReportPdf function
+  if (typeof window.downloadReportPdf === 'function') {
+    window.downloadReportPdf(reportId);
+  } else {
+    // Show notification toast if toast function is defined
+    if (typeof window.showNotification === 'function') {
+      window.showNotification(
+        'PDF Download', 
+        'PDF download feature is being initialized...', 
+        'info'
+      );
+    }
+    
+    // Dispatch a custom event that the main application can listen for
+    const event = new CustomEvent('downloadReport', { 
+      detail: { reportId, format: 'pdf' } 
+    });
+    document.dispatchEvent(event);
+  }
 }
