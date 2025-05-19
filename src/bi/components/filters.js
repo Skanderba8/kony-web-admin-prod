@@ -1,157 +1,182 @@
-// src/bi/components/filters.js - Enhanced version
+// src/bi/components/filters.js
+
 /**
- * Creates an enhanced filter panel for the dashboard
- * @param {string} containerId - ID of the container element
- * @param {Function} onChange - Callback function triggered when filters change
+ * Creates a filter panel for the BI dashboard
+ * @param {string} containerId - The ID of the container element
+ * @param {Function} onFilterChange - Callback function when filters change
+ * @param {Object} initialFilters - Initial filter values
  * @returns {Object} - Filter panel API
  */
-export function createFilterPanel(containerId, onChange) {
+export function createFilterPanel(containerId, onFilterChange, initialFilters = {}) {
   const container = document.getElementById(containerId);
   
   if (!container) {
-    console.error(`Container with ID ${containerId} not found`);
-    return;
+    console.error(`Container element with ID ${containerId} not found`);
+    return null;
   }
   
-  // Clear previous content
-  container.innerHTML = '';
-  
-  // Create filter panel structure with improved UI
+  // Create filter panel UI
   container.innerHTML = `
     <div class="card shadow-sm mb-4">
-      <div class="card-header bg-white py-3">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0 fw-semibold">
-            <i class="bi bi-funnel me-2"></i>
-            Filters
-          </h5>
-          <button type="button" class="btn btn-sm btn-icon btn-light" id="toggleFilters">
-            <i class="bi bi-chevron-up"></i>
-          </button>
-        </div>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-funnel me-2"></i>
+          Filters
+        </h5>
+        <button class="btn btn-sm btn-icon" id="toggleFiltersBtn">
+          <i class="bi bi-chevron-up"></i>
+        </button>
       </div>
-      <div class="card-body pt-0" id="filterBody">
-        <div class="row gy-3 mt-3">
-          <!-- Date Range -->
-          <div class="col-12">
-            <label for="dateRangeSelect" class="form-label">Date Range</label>
-            <select class="form-select" id="dateRangeSelect">
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="thisWeek">This Week</option>
-              <option value="lastWeek">Last Week</option>
-              <option value="thisMonth">This Month</option>
-              <option value="last30">Last 30 Days</option>
-              <option value="thisQuarter">This Quarter</option>
-              <option value="thisYear">This Year</option>
-              <option value="lastYear">Last Year</option>
-              <option value="custom">Custom Range</option>
-            </select>
+      <div class="card-body" id="filterBody">
+        <!-- Date Range Filter -->
+        <div class="mb-3">
+          <label class="form-label">Date Range</label>
+          <select class="form-select" id="dateRangeSelect">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="last7days">Last 7 Days</option>
+            <option value="last30days">Last 30 Days</option>
+            <option value="thisMonth">This Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        
+        <!-- Custom Date Range (initially hidden) -->
+        <div class="mb-3" id="customDateRange" style="display: none;">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Start Date</label>
+              <input type="date" class="form-control" id="startDateInput">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">End Date</label>
+              <input type="date" class="form-control" id="endDateInput">
+            </div>
           </div>
-          
-          <!-- Custom Date Range (initially hidden) -->
-          <div class="col-12" id="customDateContainer" style="display: none;">
-            <div class="row gy-2">
-              <div class="col-md-6">
-                <label for="startDate" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="startDate">
+        </div>
+        
+        <!-- Status Filter -->
+        <div class="mb-3">
+          <label class="form-label">Status</label>
+          <div class="d-flex flex-wrap gap-2" id="statusFilter">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="statusAll" checked>
+              <label class="form-check-label" for="statusAll">All</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="statusDraft">
+              <label class="form-check-label" for="statusDraft">Draft</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="statusSubmitted">
+              <label class="form-check-label" for="statusSubmitted">Submitted</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="statusReviewed">
+              <label class="form-check-label" for="statusReviewed">Reviewed</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="statusApproved">
+              <label class="form-check-label" for="statusApproved">Approved</label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Technician Filter -->
+        <div class="mb-3">
+          <label class="form-label">Technician</label>
+          <select class="form-select" id="technicianSelect">
+            <option value="all">All Technicians</option>
+            <!-- Technician options will be added here dynamically -->
+          </select>
+        </div>
+        
+        <!-- Client Filter -->
+        <div class="mb-3">
+          <label class="form-label">Client</label>
+          <select class="form-select" id="clientSelect">
+            <option value="all">All Clients</option>
+            <!-- Client options will be added here dynamically -->
+          </select>
+        </div>
+        
+        <!-- Component Count Filter -->
+        <div class="mb-3">
+          <label class="form-label">Component Count</label>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text">Min</span>
+                <input type="number" class="form-control" id="minComponentsInput" min="0">
               </div>
-              <div class="col-md-6">
-                <label for="endDate" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="endDate">
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text">Max</span>
+                <input type="number" class="form-control" id="maxComponentsInput" min="0">
               </div>
             </div>
           </div>
-          
-          <!-- Status -->
-          <div class="col-12">
-            <label for="statusSelect" class="form-label">Status</label>
-            <div class="status-filter-buttons" id="statusButtons">
-              <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="statusRadio" id="statusAll" value="all" checked>
-                <label class="btn btn-outline-secondary" for="statusAll">All</label>
-                
-                <input type="radio" class="btn-check" name="statusRadio" id="statusDraft" value="draft">
-                <label class="btn btn-outline-secondary" for="statusDraft">Draft</label>
-                
-                <input type="radio" class="btn-check" name="statusRadio" id="statusSubmitted" value="submitted">
-                <label class="btn btn-outline-primary" for="statusSubmitted">Submitted</label>
-                
-                <input type="radio" class="btn-check" name="statusRadio" id="statusReviewed" value="reviewed">
-                <label class="btn btn-outline-info" for="statusReviewed">Reviewed</label>
-                
-                <input type="radio" class="btn-check" name="statusRadio" id="statusApproved" value="approved">
-                <label class="btn btn-outline-success" for="statusApproved">Approved</label>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Time Interval -->
-          <div class="col-12">
-            <label for="timeIntervalSelect" class="form-label">Time Grouping</label>
-            <select class="form-select" id="timeIntervalSelect">
-              <option value="day">Daily</option>
-              <option value="week">Weekly</option>
-              <option value="month" selected>Monthly</option>
-              <option value="quarter">Quarterly</option>
-              <option value="year">Yearly</option>
-            </select>
-          </div>
-          
-          <!-- Client Filter (to be dynamically populated) -->
-          <div class="col-12">
-            <label for="clientSelect" class="form-label">Client</label>
-            <select class="form-select" id="clientSelect">
-              <option value="all">All Clients</option>
-              <!-- Populated dynamically -->
-            </select>
-          </div>
-          
-          <!-- Technician Filter (to be dynamically populated) -->
-          <div class="col-12">
-            <label for="technicianSelect" class="form-label">Technician</label>
-            <select class="form-select" id="technicianSelect">
-              <option value="all">All Technicians</option>
-              <!-- Populated dynamically -->
-            </select>
-          </div>
-          
-          <!-- Component Count Range -->
-          <div class="col-12">
-            <label class="form-label">Component Count</label>
-            <div class="d-flex align-items-center gap-2">
-              <input type="number" class="form-control" id="minComponents" min="0" placeholder="Min">
-              <span>to</span>
-              <input type="number" class="form-control" id="maxComponents" min="0" placeholder="Max">
-            </div>
-          </div>
-          
-          <!-- Filter Buttons -->
-          <div class="col-12 mt-2">
-            <div class="d-grid gap-2">
-              <button type="button" class="btn btn-primary" id="applyFilters">
-                <i class="bi bi-funnel-fill me-1"></i> Apply Filters
-              </button>
-              <button type="button" class="btn btn-outline-secondary" id="resetFilters">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-              </button>
-            </div>
-          </div>
+        </div>
+        
+        <!-- Time Grouping Filter -->
+        <div class="mb-3">
+          <label class="form-label">Time Grouping</label>
+          <select class="form-select" id="timeGroupingSelect">
+            <option value="day">Daily</option>
+            <option value="week">Weekly</option>
+            <option value="month" selected>Monthly</option>
+          </select>
+        </div>
+        
+        <!-- Filter Buttons -->
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary w-100" id="applyFiltersBtn">
+            <i class="bi bi-funnel me-2"></i>
+            Apply Filters
+          </button>
+          <button class="btn btn-outline-secondary" id="resetFiltersBtn">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
         </div>
       </div>
     </div>
   `;
   
-  // Add event listeners
+  // Set up event listeners
   const dateRangeSelect = document.getElementById('dateRangeSelect');
-  const customDateContainer = document.getElementById('customDateContainer');
-  const toggleFiltersBtn = document.getElementById('toggleFilters');
+  const customDateRange = document.getElementById('customDateRange');
+  const statusAll = document.getElementById('statusAll');
+  const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
   const filterBody = document.getElementById('filterBody');
-  const applyFiltersBtn = document.getElementById('applyFilters');
-  const resetFiltersBtn = document.getElementById('resetFilters');
+  const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+  const resetFiltersBtn = document.getElementById('resetFiltersBtn');
   
-  // Toggle filter panel
+  // Toggle custom date range based on selection
+  dateRangeSelect.addEventListener('change', () => {
+    customDateRange.style.display = dateRangeSelect.value === 'custom' ? 'block' : 'none';
+  });
+  
+  // Handle "All" status checkbox
+  statusAll.addEventListener('change', () => {
+    const statusCheckboxes = document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll)');
+    statusCheckboxes.forEach(checkbox => {
+      checkbox.checked = false;
+      checkbox.disabled = statusAll.checked;
+    });
+  });
+  
+  // Handle individual status checkboxes
+  document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll)').forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      const anyStatusChecked = Array.from(document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll)')).some(cb => cb.checked);
+      statusAll.checked = !anyStatusChecked;
+    });
+  });
+  
+  // Toggle filters visibility
   toggleFiltersBtn.addEventListener('click', () => {
     if (filterBody.style.display === 'none') {
       filterBody.style.display = 'block';
@@ -162,171 +187,250 @@ export function createFilterPanel(containerId, onChange) {
     }
   });
   
-  // Show/hide custom date range inputs
-  dateRangeSelect.addEventListener('change', () => {
-    if (dateRangeSelect.value === 'custom') {
-      customDateContainer.style.display = 'block';
-    } else {
-      customDateContainer.style.display = 'none';
+  // Apply filters
+  applyFiltersBtn.addEventListener('click', () => {
+    const filters = getFilters();
+    if (onFilterChange) {
+      onFilterChange(filters);
     }
   });
   
   // Reset filters
   resetFiltersBtn.addEventListener('click', () => {
-    // Reset date range
-    dateRangeSelect.value = 'all';
-    customDateContainer.style.display = 'none';
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-    
-    // Reset status
-    document.getElementById('statusAll').checked = true;
-    
-    // Reset time interval
-    document.getElementById('timeIntervalSelect').value = 'month';
-    
-    // Reset client and technician
-    document.getElementById('clientSelect').value = 'all';
-    document.getElementById('technicianSelect').value = 'all';
-    
-    // Reset component count
-    document.getElementById('minComponents').value = '';
-    document.getElementById('maxComponents').value = '';
-    
-    // Trigger change callback with reset values
-    if (onChange) {
-      onChange(getFilterValues());
+    resetFilters();
+    if (onFilterChange) {
+      onFilterChange(getFilters());
     }
   });
   
-  // Apply filters
-  applyFiltersBtn.addEventListener('click', () => {
-    if (onChange) {
-      onChange(getFilterValues());
-    }
-  });
+  // Set initial filters if provided
+  if (initialFilters && Object.keys(initialFilters).length > 0) {
+    setFilters(initialFilters);
+  }
   
-  // Status radio buttons
-  document.querySelectorAll('input[name="statusRadio"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      // Auto-apply filter when status changes
-      if (onChange) {
-        onChange(getFilterValues());
-      }
-    });
-  });
-  
-  // Helper function to get current filter values
-  function getFilterValues() {
+  // Helper function to get current filters
+  function getFilters() {
+    // Process date range
     const dateRange = dateRangeSelect.value;
     let startDate = null;
     let endDate = null;
     
-    // Calculate date range based on selection
     if (dateRange === 'custom') {
-      startDate = document.getElementById('startDate').value || null;
-      endDate = document.getElementById('endDate').value || null;
+      startDate = document.getElementById('startDateInput').value ? new Date(document.getElementById('startDateInput').value) : null;
+      endDate = document.getElementById('endDateInput').value ? new Date(document.getElementById('endDateInput').value) : null;
       
-      if (startDate) startDate = new Date(startDate);
+      // Set end date to end of day
       if (endDate) {
-        endDate = new Date(endDate);
-        endDate.setHours(23, 59, 59, 999); // End of day
+        endDate.setHours(23, 59, 59, 999);
       }
     } else {
-      const now = new Date();
-      
-      switch(dateRange) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        case 'yesterday':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-          break;
-        case 'thisWeek':
-          const dayOfWeek = now.getDay();
-          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust when day is Sunday
-          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-          endDate = new Date();
-          break;
-        case 'lastWeek':
-          const lastWeekDay = now.getDay();
-          const lastWeekDiff = now.getDate() - lastWeekDay - 6;
-          startDate = new Date(now.getFullYear(), now.getMonth(), lastWeekDiff);
-          endDate = new Date(now.getFullYear(), now.getMonth(), lastWeekDiff + 6, 23, 59, 59, 999);
-          break;
-        case 'thisMonth':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date();
-          break;
-        case 'last30':
-          startDate = new Date();
-          startDate.setDate(now.getDate() - 30);
-          endDate = new Date();
-          break;
-        case 'thisQuarter':
-          const quarter = Math.floor(now.getMonth() / 3);
-          startDate = new Date(now.getFullYear(), quarter * 3, 1);
-          endDate = new Date();
-          break;
-        case 'thisYear':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          endDate = new Date();
-          break;
-        case 'lastYear':
-          startDate = new Date(now.getFullYear() - 1, 0, 1);
-          endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-          break;
-      }
+      const dates = getDateRangeFromSelection(dateRange);
+      startDate = dates.startDate;
+      endDate = dates.endDate;
     }
     
-    // Get status filter
-    const statusRadio = document.querySelector('input[name="statusRadio"]:checked');
-    const status = statusRadio ? statusRadio.value : 'all';
+    // Process status filters
+    const statusFilters = [];
     
-    // Get other filter values
-    const timeInterval = document.getElementById('timeIntervalSelect').value;
-    const client = document.getElementById('clientSelect').value;
+    if (!statusAll.checked) {
+      const statusCheckboxes = document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll):checked');
+      statusFilters.push(...Array.from(statusCheckboxes).map(checkbox => checkbox.id.replace('status', '').toLowerCase()));
+    }
+    
+    // Get other filters
     const technician = document.getElementById('technicianSelect').value;
-    
-    // Get component count range
-    const minComponents = document.getElementById('minComponents').value || null;
-    const maxComponents = document.getElementById('maxComponents').value || null;
+    const client = document.getElementById('clientSelect').value;
+    const minComponents = document.getElementById('minComponentsInput').value;
+    const maxComponents = document.getElementById('maxComponentsInput').value;
+    const timeGrouping = document.getElementById('timeGroupingSelect').value;
     
     return {
       dateRange,
       startDate,
       endDate,
-      status: status === 'all' ? null : status,
-      timeInterval,
-      client: client === 'all' ? null : client,
-      technician: technician === 'all' ? null : technician,
+      status: statusFilters.length > 0 ? statusFilters : null,
+      technician: technician !== 'all' ? technician : null,
+      client: client !== 'all' ? client : null,
       minComponents: minComponents ? parseInt(minComponents) : null,
-      maxComponents: maxComponents ? parseInt(maxComponents) : null
+      maxComponents: maxComponents ? parseInt(maxComponents) : null,
+      timeGrouping
     };
   }
   
-  // Add custom styles
-  addFilterStyles();
+  // Helper function to reset filters
+  function resetFilters() {
+    // Reset date range
+    dateRangeSelect.value = 'all';
+    customDateRange.style.display = 'none';
+    document.getElementById('startDateInput').value = '';
+    document.getElementById('endDateInput').value = '';
+    
+    // Reset status filters
+    statusAll.checked = true;
+    document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll)').forEach(checkbox => {
+      checkbox.checked = false;
+      checkbox.disabled = true;
+    });
+    
+    // Reset dropdown filters
+    document.getElementById('technicianSelect').value = 'all';
+    document.getElementById('clientSelect').value = 'all';
+    
+    // Reset component count filters
+    document.getElementById('minComponentsInput').value = '';
+    document.getElementById('maxComponentsInput').value = '';
+    
+    // Reset time grouping
+    document.getElementById('timeGroupingSelect').value = 'month';
+  }
+  
+  // Helper function to set filters
+  function setFilters(filters) {
+    if (filters.dateRange) {
+      dateRangeSelect.value = filters.dateRange;
+      
+      if (filters.dateRange === 'custom') {
+        customDateRange.style.display = 'block';
+        
+        if (filters.startDate) {
+          document.getElementById('startDateInput').value = formatDateForInput(filters.startDate);
+        }
+        
+        if (filters.endDate) {
+          document.getElementById('endDateInput').value = formatDateForInput(filters.endDate);
+        }
+      }
+    }
+    
+    if (filters.status && Array.isArray(filters.status) && filters.status.length > 0) {
+      statusAll.checked = false;
+      
+      document.querySelectorAll('#statusFilter input[type="checkbox"]:not(#statusAll)').forEach(checkbox => {
+        const statusValue = checkbox.id.replace('status', '').toLowerCase();
+        checkbox.checked = filters.status.includes(statusValue);
+        checkbox.disabled = false;
+      });
+    }
+    
+    if (filters.technician) {
+      const techSelect = document.getElementById('technicianSelect');
+      if (Array.from(techSelect.options).some(option => option.value === filters.technician)) {
+        techSelect.value = filters.technician;
+      }
+    }
+    
+    if (filters.client) {
+      const clientSelect = document.getElementById('clientSelect');
+      if (Array.from(clientSelect.options).some(option => option.value === filters.client)) {
+        clientSelect.value = filters.client;
+      }
+    }
+    
+    if (filters.minComponents !== null && filters.minComponents !== undefined) {
+      document.getElementById('minComponentsInput').value = filters.minComponents;
+    }
+    
+    if (filters.maxComponents !== null && filters.maxComponents !== undefined) {
+      document.getElementById('maxComponentsInput').value = filters.maxComponents;
+    }
+    
+    if (filters.timeGrouping) {
+      document.getElementById('timeGroupingSelect').value = filters.timeGrouping;
+    }
+  }
+  
+  // Helper function to get date range from selection
+  function getDateRangeFromSelection(selection) {
+    const now = new Date();
+    let startDate = null;
+    let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    
+    switch (selection) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'yesterday':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        break;
+      case 'last7days':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        break;
+      case 'last30days':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+        break;
+      case 'thisMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'lastMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+      default:
+        startDate = null;
+        endDate = null;
+    }
+    
+    return { startDate, endDate };
+  }
+  
+  // Helper function to format date for input element
+  function formatDateForInput(date) {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  }
   
   // Return public API
   return {
-    updateOptions: function(clients = [], technicians = []) {
-      // Populate client dropdown
-      const clientSelect = document.getElementById('clientSelect');
+    getFilters,
+    setFilters,
+    resetFilters,
+    
+    // Update technician options
+    updateTechnicians: function(technicians) {
+      const techSelect = document.getElementById('technicianSelect');
+      const currentValue = techSelect.value;
       
-      // Keep the first "All Clients" option
-      while (clientSelect.childNodes.length > 1) {
-        clientSelect.removeChild(clientSelect.lastChild);
+      // Clear existing options except the first one
+      while (techSelect.options.length > 1) {
+        techSelect.remove(1);
       }
       
-      // Sort clients alphabetically
-      clients.sort();
+      // Add new options
+      technicians.forEach(tech => {
+        if (!tech) return; // Skip empty values
+        
+        const option = document.createElement('option');
+        option.value = tech;
+        option.textContent = tech;
+        techSelect.appendChild(option);
+      });
       
-      // Add client options
+      // Restore selected value if it still exists
+      if (currentValue !== 'all' && Array.from(techSelect.options).some(option => option.value === currentValue)) {
+        techSelect.value = currentValue;
+      }
+    },
+    
+    // Update client options
+    updateClients: function(clients) {
+      const clientSelect = document.getElementById('clientSelect');
+      const currentValue = clientSelect.value;
+      
+      // Clear existing options except the first one
+      while (clientSelect.options.length > 1) {
+        clientSelect.remove(1);
+      }
+      
+      // Add new options
       clients.forEach(client => {
-        if (!client) return; // Skip empty client names
+        if (!client) return; // Skip empty values
         
         const option = document.createElement('option');
         option.value = client;
@@ -334,118 +438,10 @@ export function createFilterPanel(containerId, onChange) {
         clientSelect.appendChild(option);
       });
       
-      // Populate technician dropdown
-      const technicianSelect = document.getElementById('technicianSelect');
-      
-      // Keep the first "All Technicians" option
-      while (technicianSelect.childNodes.length > 1) {
-        technicianSelect.removeChild(technicianSelect.lastChild);
-      }
-      
-      // Sort technicians alphabetically
-      technicians.sort();
-      
-      // Add technician options
-      technicians.forEach(tech => {
-        if (!tech) return; // Skip empty technician names
-        
-        const option = document.createElement('option');
-        option.value = tech;
-        option.textContent = tech;
-        technicianSelect.appendChild(option);
-      });
-    },
-    
-    getFilters: getFilterValues,
-    
-    setFilters: function(filters) {
-      // Set date range
-      if (filters.dateRange) {
-        dateRangeSelect.value = filters.dateRange;
-        
-        if (filters.dateRange === 'custom') {
-          customDateContainer.style.display = 'block';
-          
-          if (filters.startDate) {
-            const startDate = new Date(filters.startDate);
-            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-          }
-          
-          if (filters.endDate) {
-            const endDate = new Date(filters.endDate);
-            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
-          }
-        }
-      }
-      
-      // Set status
-      if (filters.status) {
-        const statusRadio = document.getElementById(`status${filters.status.charAt(0).toUpperCase() + filters.status.slice(1)}`);
-        if (statusRadio) {
-          statusRadio.checked = true;
-        }
-      }
-      
-      // Set time interval
-      if (filters.timeInterval) {
-        document.getElementById('timeIntervalSelect').value = filters.timeInterval;
-      }
-      
-      // Set client
-      if (filters.client) {
-        document.getElementById('clientSelect').value = filters.client;
-      }
-      
-      // Set technician
-      if (filters.technician) {
-        document.getElementById('technicianSelect').value = filters.technician;
-      }
-      
-      // Set component count range
-      if (filters.minComponents !== null && filters.minComponents !== undefined) {
-        document.getElementById('minComponents').value = filters.minComponents;
-      }
-      
-      if (filters.maxComponents !== null && filters.maxComponents !== undefined) {
-        document.getElementById('maxComponents').value = filters.maxComponents;
+      // Restore selected value if it still exists
+      if (currentValue !== 'all' && Array.from(clientSelect.options).some(option => option.value === currentValue)) {
+        clientSelect.value = currentValue;
       }
     }
   };
-}
-
-/**
- * Add custom styles for filter panel
- */
-function addFilterStyles() {
-  // Check if styles already exist
-  if (document.getElementById('filter-custom-styles')) return;
-  
-  // Create style element
-  const style = document.createElement('style');
-  style.id = 'filter-custom-styles';
-  style.textContent = `
-    /* Status radio buttons */
-    .status-filter-buttons .btn-group {
-      flex-wrap: wrap;
-    }
-    
-    .status-filter-buttons .btn {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.875rem;
-    }
-    
-    /* Dark mode compatibility */
-    [data-theme="dark"] .card-header {
-      background-color: #2b3035 !important;
-    }
-    
-    [data-theme="dark"] .btn-light {
-      background-color: #343a40;
-      border-color: #343a40;
-      color: #f8f9fa;
-    }
-  `;
-  
-  // Add to document
-  document.head.appendChild(style);
 }
