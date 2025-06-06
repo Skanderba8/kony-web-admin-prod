@@ -1,4 +1,4 @@
-// Debug version of src/main.js
+// src/main.js - Clean production version
 import './style.css';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase/config.js';
@@ -6,172 +6,67 @@ import { getUserRole } from './utils/auth.js';
 import { showLoginForm } from './components/login.js';
 import { showDashboard } from './components/dashboard.js';
 
-console.log('🚀 Starting Kony Web Admin Dashboard');
-
-// Force light mode by default
-document.documentElement.removeAttribute('data-theme');
-
-// Add loading indicator
-function showLoadingStatus(message) {
-  const loadingElement = document.getElementById('loading-message');
+// Loading message helper
+function updateLoadingMessage(message) {
+  const loadingElement = document.getElementById('loadingMessage');
   if (loadingElement) {
     loadingElement.textContent = message;
   }
-  console.log('📱 Loading:', message);
 }
 
 // Main application initialization
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📄 DOM loaded, setting up auth listener');
-  showLoadingStatus('Initializing Firebase...');
+  console.log('Initializing Kony Admin Dashboard...');
   
-  // Test Firebase connection
-  try {
-    console.log('🔥 Firebase auth object:', auth);
-    console.log('🔥 Firebase app:', auth.app);
-    showLoadingStatus('Connecting to Firebase...');
-  } catch (error) {
-    console.error('❌ Firebase initialization error:', error);
-    showLoadingStatus('Firebase connection failed');
-    
-    // Show error to user
-    setTimeout(() => {
-      document.body.innerHTML = `
-        <div style="padding: 2rem; text-align: center; font-family: Arial, sans-serif;">
-          <h2 style="color: #dc2626;">❌ Firebase Connection Error</h2>
-          <p>There was an error connecting to Firebase:</p>
-          <pre style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; text-align: left;">${error.message}</pre>
-          <button onclick="window.location.reload()" style="
-            background: #3b82f6; 
-            color: white; 
-            border: none; 
-            padding: 0.75rem 1.5rem; 
-            border-radius: 0.375rem; 
-            cursor: pointer;
-            margin-top: 1rem;
-          ">
-            🔄 Retry
-          </button>
-        </div>
-      `;
-    }, 1000);
-    return;
-  }
+  updateLoadingMessage('Connexion à Firebase...');
   
-  // Listen for auth state changes with timeout
-  const authTimeout = setTimeout(() => {
-    console.warn('⚠️ Auth state listener timeout after 10 seconds');
-    showLoadingStatus('Authentication timeout - retrying...');
-    
-    // Show manual login option
-    document.body.innerHTML = `
-      <div style="padding: 2rem; text-align: center; font-family: Arial, sans-serif;">
-        <h2 style="color: #f59e0b;">⚠️ Authentication Timeout</h2>
-        <p>The authentication process is taking longer than expected.</p>
-        <button onclick="window.location.reload()" style="
-          background: #3b82f6; 
-          color: white; 
-          border: none; 
-          padding: 0.75rem 1.5rem; 
-          border-radius: 0.375rem; 
-          cursor: pointer;
-          margin: 1rem;
-        ">
-          🔄 Retry
-        </button>
-        <button onclick="showManualLogin()" style="
-          background: #10b981; 
-          color: white; 
-          border: none; 
-          padding: 0.75rem 1.5rem; 
-          border-radius: 0.375rem; 
-          cursor: pointer;
-          margin: 1rem;
-        ">
-          🔑 Manual Login
-        </button>
-      </div>
-    `;
-  }, 10000); // 10 second timeout
-  
-  // Manual login function
-  window.showManualLogin = () => {
-    clearTimeout(authTimeout);
-    console.log('🔑 Showing manual login');
-    showLoginForm();
-  };
-  
-  // Listen for auth state changes
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    clearTimeout(authTimeout); // Clear timeout since we got a response
-    
+  // Auth state listener
+  onAuthStateChanged(auth, async (user) => {
     try {
       if (user) {
-        console.log('✅ User is signed in:', user.email);
-        showLoadingStatus('User authenticated, checking permissions...');
+        console.log('User signed in:', user.email);
+        updateLoadingMessage('Vérification des permissions...');
         
-        // Check if user is admin
-        console.log('🔍 Getting user role for:', user.uid);
+        // Get user role
         const role = await getUserRole(user.uid);
-        console.log('👤 User role:', role);
         
         if (role === 'admin') {
-          console.log('✅ Admin access granted');
-          showLoadingStatus('Loading dashboard...');
+          updateLoadingMessage('Chargement du tableau de bord...');
           
+          // Small delay for smooth transition
           setTimeout(() => {
+            document.body.classList.add('app-ready');
             showDashboard();
-          }, 500);
+          }, 800);
         } else {
-          console.log('❌ Access denied - not an admin');
-          showLoadingStatus('Access denied - admin only');
+          console.log('Access denied - not an admin');
+          updateLoadingMessage('Accès refusé...');
           
-          // Not an admin, sign out
-          auth.signOut();
+          // Sign out non-admin users
+          await auth.signOut();
+          
           setTimeout(() => {
-            showLoginForm('Only administrators can access this dashboard.');
+            document.body.classList.add('app-ready');
+            showLoginForm('Seuls les administrateurs peuvent accéder à ce tableau de bord.');
           }, 1000);
         }
       } else {
-        console.log('👤 No user signed in');
-        showLoadingStatus('Please sign in...');
+        console.log('No user signed in');
+        updateLoadingMessage('Connexion requise...');
         
         setTimeout(() => {
+          document.body.classList.add('app-ready');
           showLoginForm();
         }, 500);
       }
     } catch (error) {
-      console.error('❌ Auth state change error:', error);
-      showLoadingStatus('Authentication error');
+      console.error('Auth error:', error);
+      updateLoadingMessage('Erreur d\'authentification...');
       
       setTimeout(() => {
-        showLoginForm('Authentication error: ' + error.message);
+        document.body.classList.add('app-ready');
+        showLoginForm('Erreur d\'authentification: ' + error.message);
       }, 1000);
     }
-  }, (error) => {
-    clearTimeout(authTimeout);
-    console.error('❌ Auth listener error:', error);
-    showLoadingStatus('Authentication listener failed');
-    
-    setTimeout(() => {
-      showLoginForm('Authentication system error: ' + error.message);
-    }, 1000);
-  });
-  
-  // Cleanup function
-  window.addEventListener('beforeunload', () => {
-    console.log('🧹 Cleaning up auth listener');
-    unsubscribe();
-    clearTimeout(authTimeout);
   });
 });
-
-// Add debug info to window for console debugging
-window.debugInfo = {
-  auth,
-  getUserRole,
-  showLoginForm,
-  showDashboard
-};
-
-console.log('🔧 Debug info available at window.debugInfo');
