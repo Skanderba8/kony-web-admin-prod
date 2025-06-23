@@ -1,4 +1,16 @@
-import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+// src/utils/api.js - Basic API utilities (keeping existing functionality)
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  deleteDoc,
+  addDoc
+} from 'firebase/firestore';
 import { db } from '../firebase/config.js';
 
 /**
@@ -11,9 +23,9 @@ export async function getReportsByStatus(status) {
     let q;
     
     if (status === 'all') {
-      q = query(reportsRef);
+      q = query(reportsRef, orderBy('createdAt', 'desc'));
     } else {
-      q = query(reportsRef, where('status', '==', status));
+      q = query(reportsRef, where('status', '==', status), orderBy('createdAt', 'desc'));
     }
     
     const querySnapshot = await getDocs(q);
@@ -94,7 +106,9 @@ export async function getUsers() {
   try {
     console.log('Getting all users');
     const usersRef = collection(db, 'users');
-    const querySnapshot = await getDocs(usersRef);
+    const q = query(usersRef, orderBy('displayName', 'asc'));
+    const querySnapshot = await getDocs(q);
+    
     console.log(`Found ${querySnapshot.docs.length} users`);
     
     return querySnapshot.docs.map(doc => ({
@@ -108,16 +122,15 @@ export async function getUsers() {
 }
 
 /**
- * Update user
+ * Update user data
  */
-export async function updateUser(authUid, userData) {
+export async function updateUser(userId, userData) {
   try {
-    console.log(`Updating user with authUid: ${authUid}`);
-    await updateDoc(doc(db, 'users', authUid), {
-      name: userData.name,
-      email: userData.email,
-      role: userData.role,
-      updatedAt: new Date().toISOString()
+    console.log(`Updating user ${userId}`);
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...userData,
+      lastModified: new Date().toISOString()
     });
     console.log('User updated successfully');
     return true;
@@ -130,10 +143,10 @@ export async function updateUser(authUid, userData) {
 /**
  * Delete user
  */
-export async function deleteUser(authUid) {
+export async function deleteUser(userId) {
   try {
-    console.log(`Deleting user with authUid: ${authUid}`);
-    await deleteDoc(doc(db, 'users', authUid));
+    console.log(`Deleting user with ID: ${userId}`);
+    await deleteDoc(doc(db, 'users', userId));
     console.log('User deleted successfully');
     return true;
   } catch (error) {
@@ -141,3 +154,84 @@ export async function deleteUser(authUid) {
     throw error;
   }
 }
+
+/**
+ * Add new user
+ */
+export async function addUser(userData) {
+  try {
+    console.log('Adding new user');
+    const usersRef = collection(db, 'users');
+    const docRef = await addDoc(usersRef, {
+      ...userData,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    });
+    console.log('User added successfully with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding user:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get users by role
+ */
+export async function getUsersByRole(role) {
+  try {
+    console.log(`Getting users with role: ${role}`);
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('role', '==', role));
+    const querySnapshot = await getDocs(q);
+    
+    console.log(`Found ${querySnapshot.docs.length} users with role ${role}`);
+    
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error getting users by role:", error);
+    throw error;
+  }
+}
+
+/**
+ * Search users by name or email
+ */
+export async function searchUsers(searchTerm) {
+  try {
+    console.log(`Searching users with term: ${searchTerm}`);
+    
+    // Get all users first (Firestore doesn't support complex text search)
+    const allUsers = await getUsers();
+    
+    // Filter on client side
+    const filteredUsers = allUsers.filter(user => 
+      (user.displayName && user.displayName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    
+    console.log(`Found ${filteredUsers.length} matching users`);
+    return filteredUsers;
+    
+  } catch (error) {
+    console.error("Error searching users:", error);
+    throw error;
+  }
+}
+
+// Export all functions
+export {
+  getReportsByStatus,
+  getReportById,
+  updateReportStatus,
+  deleteReport,
+  getUsers,
+  updateUser,
+  deleteUser,
+  addUser,
+  getUsersByRole,
+  searchUsers
+};
