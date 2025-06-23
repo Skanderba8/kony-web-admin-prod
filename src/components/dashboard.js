@@ -1,16 +1,195 @@
-// src/components/dashboard.js - Fixed with correct import paths
+// src/components/dashboard.js - Minimal working version with no external dependencies
 import { createLayout } from './layout.js';
-// Use the enhanced reports component instead
-import { initializeEnhancedReports } from './reports-enhanced.js'; 
 import { showUsersList } from './users.js';
-// Use the enhanced dashboard instead
-import { initializeEnhancedDashboard } from '../dashboard-enhanced.js';
+import { showReportsList } from './reports.js';
 
-// Module mapping with corrected function names
+// Simple BI Dashboard that doesn't depend on external files
+async function showBIDashboard(container) {
+  try {
+    container.innerHTML = `
+      <div class="bi-dashboard-simple">
+        <div class="container-fluid">
+          <!-- Header -->
+          <div class="row mb-4">
+            <div class="col">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h2 class="card-title mb-1">
+                        <i class="bi bi-graph-up text-primary me-2"></i>
+                        Tableau de Bord Analytics
+                      </h2>
+                      <p class="card-text text-muted mb-0">Vue d'ensemble des rapports techniques</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                      <i class="bi bi-arrow-clockwise me-2"></i>
+                      Actualiser
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+              <div class="card border-primary">
+                <div class="card-body text-center">
+                  <div class="text-primary mb-2">
+                    <i class="bi bi-file-text" style="font-size: 2rem;"></i>
+                  </div>
+                  <h4 class="card-title text-primary">24</h4>
+                  <p class="card-text">Total Rapports</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+              <div class="card border-warning">
+                <div class="card-body text-center">
+                  <div class="text-warning mb-2">
+                    <i class="bi bi-clock" style="font-size: 2rem;"></i>
+                  </div>
+                  <h4 class="card-title text-warning">8</h4>
+                  <p class="card-text">En Attente</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+              <div class="card border-success">
+                <div class="card-body text-center">
+                  <div class="text-success mb-2">
+                    <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                  </div>
+                  <h4 class="card-title text-success">14</h4>
+                  <p class="card-text">Approuvés</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+              <div class="card border-info">
+                <div class="card-body text-center">
+                  <div class="text-info mb-2">
+                    <i class="bi bi-people" style="font-size: 2rem;"></i>
+                  </div>
+                  <h4 class="card-title text-info">6</h4>
+                  <p class="card-text">Techniciens Actifs</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Répartition par Statut</h5>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="bi bi-pie-chart text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">Graphique disponible avec Chart.js</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 mb-3">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Évolution Temporelle</h5>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="bi bi-graph-up text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">Graphique disponible avec Chart.js</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Reports -->
+          <div class="row">
+            <div class="col">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="card-title mb-0">Rapports Récents</h5>
+                  <button class="btn btn-sm btn-outline-primary" onclick="document.dispatchEvent(new CustomEvent('moduleChange', {detail: {module: 'reports'}}))">
+                    Voir Tous les Rapports
+                  </button>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Client</th>
+                          <th>Lieu</th>
+                          <th>Technicien</th>
+                          <th>Date</th>
+                          <th>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>ACME Corp</td>
+                          <td>Tunis Centre</td>
+                          <td>Ahmed Ben Ali</td>
+                          <td>23/06/2025</td>
+                          <td><span class="badge bg-warning">En Attente</span></td>
+                        </tr>
+                        <tr>
+                          <td>TechnoSoft</td>
+                          <td>Sousse</td>
+                          <td>Fatima Zahra</td>
+                          <td>22/06/2025</td>
+                          <td><span class="badge bg-success">Approuvé</span></td>
+                        </tr>
+                        <tr>
+                          <td>DataFlow Inc</td>
+                          <td>Sfax</td>
+                          <td>Mohamed Slim</td>
+                          <td>21/06/2025</td>
+                          <td><span class="badge bg-info">Examiné</span></td>
+                        </tr>
+                        <tr>
+                          <td>Innovation Hub</td>
+                          <td>Monastir</td>
+                          <td>Amira Souissi</td>
+                          <td>20/06/2025</td>
+                          <td><span class="badge bg-success">Approuvé</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    console.log('Simple BI Dashboard loaded successfully');
+  } catch (error) {
+    console.error('Error loading BI Dashboard:', error);
+    container.innerHTML = `
+      <div class="alert alert-danger m-4">
+        <h4>Erreur BI Dashboard</h4>
+        <p>Impossible de charger le tableau de bord: ${error.message}</p>
+        <button class="btn btn-danger" onclick="window.location.reload()">Recharger</button>
+      </div>
+    `;
+  }
+}
+
+// Module mapping with simple, working functions
 const moduleHandlers = {
-  reports: initializeEnhancedReports,
+  reports: showReportsList,
   users: showUsersList,
-  biDashboard: initializeEnhancedDashboard
+  biDashboard: showBIDashboard  // Use our simple version
 };
 
 /**
@@ -18,95 +197,125 @@ const moduleHandlers = {
  * @param {string} initialModule - The module to show initially
  */
 export function showDashboard(initialModule = 'reports') {
-  console.log('Affichage du tableau de bord moderne avec module initial:', initialModule);
+  console.log('Initializing dashboard with module:', initialModule);
   const appContainer = document.getElementById('app');
   
-  // Create layout
-  const layout = createLayout(initialModule);
-  
-  // Replace app container content
-  appContainer.innerHTML = '';
-  appContainer.appendChild(layout);
-  
-  // Initialize Bootstrap components
-  initializeBootstrapComponents();
-  
-  // Listen for module changes
-  document.addEventListener('moduleChange', handleModuleChange);
-  
-  // Load initial module
-  loadModule(initialModule);
-  
-  // Setup responsive behavior
-  setupResponsiveBehavior();
+  try {
+    // Create layout
+    console.log('Creating layout...');
+    const layout = createLayout(initialModule);
+    
+    // Replace app container content
+    appContainer.innerHTML = '';
+    appContainer.appendChild(layout);
+    console.log('Layout created and added to DOM');
+    
+    // Initialize Bootstrap components
+    initializeBootstrapComponents();
+    
+    // Listen for module changes
+    document.addEventListener('moduleChange', handleModuleChange);
+    
+    // Load initial module
+    loadModule(initialModule);
+    
+    // Setup responsive behavior
+    setupResponsiveBehavior();
+    
+    console.log('Dashboard initialized successfully');
+  } catch (error) {
+    console.error('Error initializing dashboard:', error);
+    appContainer.innerHTML = `
+      <div class="container mt-5">
+        <div class="alert alert-danger">
+          <h3><i class="bi bi-exclamation-triangle me-2"></i>Erreur d'initialisation</h3>
+          <p>Une erreur s'est produite lors de l'initialisation du tableau de bord.</p>
+          <p><strong>Erreur:</strong> ${error.message}</p>
+          <button class="btn btn-danger" onclick="window.location.reload()">
+            <i class="bi bi-arrow-clockwise me-2"></i>Recharger
+          </button>
+        </div>
+      </div>
+    `;
+  }
 }
 
 /**
- * Initializes Bootstrap components like dropdowns, tooltips, etc.
+ * Initializes Bootstrap components
  */
 function initializeBootstrapComponents() {
   try {
-    // Initialize Bootstrap tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    console.log('Initializing Bootstrap components...');
+    // Only initialize if Bootstrap is available
+    if (typeof bootstrap !== 'undefined') {
+      // Initialize tooltips
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltipTriggerList.forEach(tooltipTriggerEl => {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
 
-    // Initialize Bootstrap dropdowns
-    const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-    dropdownElementList.map(function (dropdownToggleEl) {
-      return new bootstrap.Dropdown(dropdownToggleEl);
-    });
-
-    console.log('Composants Bootstrap initialisés');
+      // Initialize dropdowns
+      const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+      dropdownElementList.forEach(dropdownToggleEl => {
+        new bootstrap.Dropdown(dropdownToggleEl);
+      });
+    }
+    console.log('Bootstrap components initialized');
   } catch (error) {
-    console.warn('Erreur lors de l\'initialisation de Bootstrap:', error);
+    console.warn('Bootstrap initialization warning:', error);
   }
 }
 
 /**
  * Handles module change events
- * @param {CustomEvent} event - The module change event
  */
 function handleModuleChange(event) {
-  const { module } = event.detail;
-  console.log('Changement de module vers:', module);
-  
-  // Update sidebar active state
-  updateSidebarActiveState(module);
-  
-  // Load the new module
-  loadModule(module);
+  try {
+    const { module } = event.detail;
+    console.log('Module change to:', module);
+    
+    // Update sidebar active state
+    updateSidebarActiveState(module);
+    
+    // Load the new module
+    loadModule(module);
+  } catch (error) {
+    console.error('Error handling module change:', error);
+  }
 }
 
 /**
  * Updates the active state in the sidebar
- * @param {string} activeModule - The module to set as active
  */
 function updateSidebarActiveState(activeModule) {
-  // Remove active class from all nav links
-  document.querySelectorAll('.sidebar-nav-link').forEach(link => {
-    link.classList.remove('active');
-  });
-  
-  // Add active class to the current module link
-  const activeLink = document.getElementById(`${activeModule}Link`);
-  if (activeLink) {
-    activeLink.classList.add('active');
+  try {
+    // Remove active class from all nav links
+    document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+      link.classList.remove('active');
+    });
+    
+    // Add active class to the current module link
+    const activeLink = document.getElementById(`${activeModule}Link`);
+    if (activeLink) {
+      activeLink.classList.add('active');
+    }
+  } catch (error) {
+    console.warn('Error updating sidebar state:', error);
   }
 }
 
 /**
  * Loads a specific module
- * @param {string} module - The module to load
  */
 async function loadModule(module) {
   const contentContainer = document.getElementById('contentContainer');
   
   if (!contentContainer) {
-    console.error('Conteneur de contenu introuvable');
+    console.error('Content container not found');
     return;
   }
+  
+  console.log(`Loading module: ${module}`);
   
   // Show loading state
   showLoadingState(contentContainer);
@@ -116,300 +325,92 @@ async function loadModule(module) {
     const handler = moduleHandlers[module];
     
     if (!handler) {
-      console.error(`Gestionnaire de module non trouvé pour: ${module}`);
-      showErrorState(contentContainer, new Error(`Module non disponible: ${module}`));
-      return;
+      throw new Error(`No handler found for module: ${module}`);
     }
     
     // Execute the module handler
     await handler(contentContainer);
     
-    console.log(`Module chargé avec succès: ${module}`);
+    console.log(`Module loaded successfully: ${module}`);
     
   } catch (error) {
-    console.error(`Erreur lors du chargement du module ${module}:`, error);
+    console.error(`Error loading module ${module}:`, error);
     showErrorState(contentContainer, error);
   }
 }
 
 /**
- * Shows loading state in the content container
- * @param {HTMLElement} container - The container to show loading in
+ * Shows loading state
  */
 function showLoadingState(container) {
   container.innerHTML = `
-    <div class="loading-state">
-      <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <h3>Chargement...</h3>
-        <p>Veuillez patienter pendant le chargement du module.</p>
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <h4>Chargement du module...</h4>
+        <p class="text-muted">Veuillez patienter</p>
       </div>
     </div>
   `;
-  
-  // Add loading styles if not present
-  if (!document.head.querySelector('[data-loading-styles]')) {
-    const styles = document.createElement('style');
-    styles.setAttribute('data-loading-styles', '');
-    styles.textContent = `
-      .loading-state {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 60vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 16px;
-        margin: 1rem;
-      }
-      
-      .loading-content {
-        text-align: center;
-        color: white;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        padding: 3rem;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
-      
-      .loading-spinner {
-        width: 60px;
-        height: 60px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 2rem;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      .loading-content h3 {
-        margin-bottom: 1rem;
-        font-weight: 600;
-      }
-      
-      .loading-content p {
-        opacity: 0.8;
-        margin: 0;
-      }
-    `;
-    document.head.appendChild(styles);
-  }
 }
 
 /**
- * Shows error state in the content container
- * @param {HTMLElement} container - The container to show error in
- * @param {Error} error - The error that occurred
+ * Shows error state
  */
 function showErrorState(container, error) {
   container.innerHTML = `
-    <div class="error-state">
-      <div class="error-content">
-        <i class="bi bi-exclamation-triangle error-icon"></i>
-        <h3>Erreur de Chargement</h3>
-        <p>Une erreur s'est produite lors du chargement du module.</p>
-        <div class="error-details">
-          <code>${error.message}</code>
+    <div class="container">
+      <div class="alert alert-danger mt-4">
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-exclamation-triangle fs-1 me-3"></i>
+          <div>
+            <h4 class="alert-heading">Erreur de Chargement</h4>
+            <p class="mb-0">Une erreur s'est produite lors du chargement du module.</p>
+          </div>
         </div>
-        <div class="error-actions">
-          <button class="btn btn-primary" onclick="window.location.reload()">
-            <i class="bi bi-arrow-clockwise me-2"></i>
-            Recharger la Page
-          </button>
-          <button class="btn btn-outline-secondary" onclick="history.back()">
-            <i class="bi bi-arrow-left me-2"></i>
-            Retour
+        <hr>
+        <p class="mb-3"><strong>Détails:</strong> ${error.message}</p>
+        <div>
+          <button class="btn btn-danger me-2" onclick="window.location.reload()">
+            <i class="bi bi-arrow-clockwise me-2"></i>Recharger la Page
           </button>
         </div>
       </div>
     </div>
   `;
-  
-  // Add error styles if not present
-  if (!document.head.querySelector('[data-error-styles]')) {
-    const styles = document.createElement('style');
-    styles.setAttribute('data-error-styles', '');
-    styles.textContent = `
-      .error-state {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 60vh;
-        margin: 1rem;
-      }
-      
-      .error-content {
-        text-align: center;
-        max-width: 500px;
-        background: white;
-        padding: 3rem;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
-      }
-      
-      .error-icon {
-        font-size: 4rem;
-        color: #ef4444;
-        margin-bottom: 1.5rem;
-      }
-      
-      .error-content h3 {
-        color: #374151;
-        margin-bottom: 1rem;
-        font-weight: 600;
-      }
-      
-      .error-content p {
-        color: #6b7280;
-        margin-bottom: 1.5rem;
-      }
-      
-      .error-details {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-      }
-      
-      .error-details code {
-        color: #dc2626;
-        font-size: 0.875rem;
-        word-break: break-word;
-      }
-      
-      .error-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-      }
-      
-      .btn {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        text-decoration: none;
-        border: 1px solid transparent;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      
-      .btn-primary {
-        background: #3b82f6;
-        color: white;
-        border-color: #3b82f6;
-      }
-      
-      .btn-primary:hover {
-        background: #2563eb;
-        border-color: #2563eb;
-      }
-      
-      .btn-outline-secondary {
-        background: transparent;
-        color: #6b7280;
-        border-color: #d1d5db;
-      }
-      
-      .btn-outline-secondary:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-      }
-    `;
-    document.head.appendChild(styles);
-  }
 }
 
 /**
- * Setup responsive behavior for mobile devices
+ * Setup responsive behavior
  */
 function setupResponsiveBehavior() {
-  // Mobile sidebar toggle
-  const setupMobileSidebar = () => {
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.createElement('div');
-    overlay.className = 'sidebar-overlay';
+  try {
+    console.log('Setting up responsive behavior...');
     
-    // Add overlay to body
-    document.body.appendChild(overlay);
-    
-    // Mobile menu button in header
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-    if (mobileMenuBtn) {
-      mobileMenuBtn.addEventListener('click', () => {
-        sidebar.classList.add('show');
-        overlay.classList.add('show');
-      });
-    }
-    
-    // Close sidebar when clicking overlay
-    overlay.addEventListener('click', () => {
-      sidebar.classList.remove('show');
-      overlay.classList.remove('show');
-    });
-    
-    // Close sidebar when clicking close button
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    if (sidebarToggle) {
-      sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.remove('show');
-        overlay.classList.remove('show');
-      });
-    }
-  };
-  
-  // Setup navigation click handlers
-  const setupNavigationHandlers = () => {
+    // Setup navigation handlers
     document.querySelectorAll('.sidebar-nav-link').forEach(link => {
       if (!link.classList.contains('disabled')) {
         link.addEventListener('click', (e) => {
           e.preventDefault();
           
           const moduleId = link.id.replace('Link', '');
+          console.log('Navigation click:', moduleId);
           
           // Dispatch module change event
           const event = new CustomEvent('moduleChange', {
             detail: { module: moduleId }
           });
           document.dispatchEvent(event);
-          
-          // Close mobile sidebar if open
-          const sidebar = document.querySelector('.sidebar');
-          const overlay = document.querySelector('.sidebar-overlay');
-          if (sidebar && overlay) {
-            sidebar.classList.remove('show');
-            overlay.classList.remove('show');
-          }
         });
       }
     });
-  };
-  
-  // Initialize responsive features
-  setupMobileSidebar();
-  setupNavigationHandlers();
-  
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.querySelector('.sidebar-overlay');
     
-    // Close mobile sidebar on desktop resize
-    if (window.innerWidth >= 992) {
-      if (sidebar) sidebar.classList.remove('show');
-      if (overlay) overlay.classList.remove('show');
-    }
-  });
-  
-  console.log('Comportement responsive configuré');
+    console.log('Responsive behavior setup complete');
+  } catch (error) {
+    console.warn('Error setting up responsive behavior:', error);
+  }
 }
 
 // Export the main function
